@@ -1,0 +1,200 @@
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Task :app:signingReport
+Variant: debug
+Config: customDebug
+Store: C:\Users\Voltaje Plus\Documents\voltajePlusSystem-main\voltajePlusSystem-main\android\app\test_debug.keystore
+Alias: androiddebugkey
+MD5: D1:6A:E6:28:67:70:42:10:B6:6B:AC:32:CB:9E:EF:13
+SHA1: A3:0A:02:E3:14:56:80:46:03:98:BE:EC:99:2F:16:33:BE:24:91:62
+SHA-256: 4D:1B:2D:63:B0:EB:2F:22:77:00:FA:C8:64:BF:BF:AC:9E:B6:BF:1C:D4:FA:87:0F:DE:77:84:6F:8E:8F:F2:CE
+Valid until: sábado, 12 de julio de 2053
+----------
+Variant: release
+Config: customDebug
+Store: C:\Users\Voltaje Plus\Documents\voltajePlusSystem-main\voltajePlusSystem-main\android\app\test_debug.keystore
+Alias: androiddebugkey
+MD5: D1:6A:E6:28:67:70:42:10:B6:6B:AC:32:CB:9E:EF:13
+SHA1: A3:0A:02:E3:14:56:80:46:03:98:BE:EC:99:2F:16:33:BE:24:91:62
+SHA-256: 4D:1B:2D:63:B0:EB:2F:22:77:00:FA:C8:64:BF:BF:AC:9E:B6:BF:1C:D4:FA:87:0F:DE:77:84:6F:8E:8F:F2:CE
+Valid until: sábado, 12 de julio de 2053
+----------
+Variant: profile
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+Variant: debugAndroidTest
+Config: customDebug
+Store: C:\Users\Voltaje Plus\Documents\voltajePlusSystem-main\voltajePlusSystem-main\android\app\test_debug.keystore
+Alias: androiddebugkey
+MD5: D1:6A:E6:28:67:70:42:10:B6:6B:AC:32:CB:9E:EF:13
+SHA1: A3:0A:02:E3:14:56:80:46:03:98:BE:EC:99:2F:16:33:BE:24:91:62
+SHA-256: 4D:1B:2D:63:B0:EB:2F:22:77:00:FA:C8:64:BF:BF:AC:9E:B6:BF:1C:D4:FA:87:0F:DE:77:84:6F:8E:8F:F2:CE
+Valid until: sábado, 12 de julio de 2053
+----------
+
+> Task :cloud_firestore:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :cloud_functions:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :firebase_auth:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :firebase_core:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :flutter_plugin_android_lifecycle:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :geolocator_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :google_maps_flutter_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :google_sign_in_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :mobile_scanner:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :package_info_plus:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :path_provider_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :permission_handler_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+> Task :webview_flutter_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Voltaje Plus\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: F6:DE:98:63:AB:3C:57:42:C5:F8:7E:BB:81:91:E5:DB
+SHA1: 18:0D:15:77:66:67:B1:A9:85:0A:57:8A:E1:2C:41:9E:9B:9A:BA:64
+SHA-256: FD:19:30:2A:F9:A1:29:BA:0E:9A:78:B5:93:08:29:9A:8D:80:B5:F5:D1:BF:2F:0A:F4:2A:D5:DD:71:52:86:7A
+Valid until: jueves, 17 de febrero de 2056
+----------
+
+[Incubating] Problems report is available at: file:///C:/Users/Voltaje%20Plus/Documents/voltajePlusSystem-main/voltajePlusSystem-main/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.12/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 3s
+18 actionable tasks: 14 executed, 4 up-to-date

@@ -1,0 +1,191 @@
+[
+  {
+    "endpoint": "/cdb/shop/list",
+    "payload": "Standard Paging",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/shop/list",
+    "payload": "With DailiId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/shop/list",
+    "payload": "With AgentId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/shop/list",
+    "payload": "With RealDailiId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/shop/list",
+    "payload": "With UserId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/shop/list",
+    "payload": "Empty Search",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/shop/list",
+    "payload": "Flat Params",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/cabinet/list",
+    "payload": "Standard Paging",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/cabinet/list",
+    "payload": "With DailiId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/cabinet/list",
+    "payload": "With AgentId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/cabinet/list",
+    "payload": "With RealDailiId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/cabinet/list",
+    "payload": "With UserId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/cabinet/list",
+    "payload": "Empty Search",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/cabinet/list",
+    "payload": "Flat Params",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/order/list",
+    "payload": "Standard Paging",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/order/list",
+    "payload": "With DailiId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/order/list",
+    "payload": "With AgentId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/order/list",
+    "payload": "With RealDailiId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/order/list",
+    "payload": "With UserId",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/order/list",
+    "payload": "Empty Search",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "endpoint": "/cdb/order/list",
+    "payload": "Flat Params",
+    "status": 200,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  }
+]
