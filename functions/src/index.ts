@@ -784,18 +784,25 @@ export const useCoupon = functions.https.onCall(async (data, context) => {
  * createCasheaOrder — Create a Cashea BNPL order and return checkout URL
  */
 export const createCasheaOrder = functions.https.onCall(async (data, context) => {
-    const uid = requireAuth(context);
-    const { amount, machineId, slotId } = data;
-
-    if (!amount || !machineId) {
-        throw new functions.https.HttpsError('invalid-argument', 'Faltan campos: amount, machineId');
-    }
-
-    console.log(`🛍️ Cashea Order Request by ${uid} for ${machineId} (${amount} VES)`);
-
-    const casheaService = new CasheaService();
+    console.log('🛍️ [STEP 0] createCasheaOrder ENTERED');
+    console.log('🛍️ [STEP 0] ENV CHECK — CASHEA_PUBLIC_API_KEY:', process.env.CASHEA_PUBLIC_API_KEY ? 'SET' : 'NOT SET');
+    console.log('🛍️ [STEP 0] ENV CHECK — CASHEA_STORE_ID:', process.env.CASHEA_STORE_ID || 'NOT SET');
 
     try {
+        const uid = requireAuth(context);
+        console.log(`🛍️ [STEP 1] Auth OK, uid: ${uid}`);
+
+        const { amount, machineId, slotId } = data;
+        console.log(`🛍️ [STEP 2] Data: amount=${amount}, machineId=${machineId}, slotId=${slotId}`);
+
+        if (!amount || !machineId) {
+            throw new functions.https.HttpsError('invalid-argument', 'Faltan campos: amount, machineId');
+        }
+
+        console.log(`🛍️ [STEP 3] Creating CasheaService...`);
+        const casheaService = new CasheaService();
+        console.log(`🛍️ [STEP 4] CasheaService created OK`);
+
         const orderResult = await casheaService.createOrder({
             amount: Number(amount),
             machineId,
@@ -803,6 +810,7 @@ export const createCasheaOrder = functions.https.onCall(async (data, context) =>
             redirectUrl: `https://voltaje.app/cashea/success`,
             cancelUrl: `https://voltaje.app/cashea/cancel`,
         });
+        console.log(`🛍️ [STEP 5] Order result: ${JSON.stringify(orderResult)}`);
 
         if (!orderResult.success) {
             throw new functions.https.HttpsError('internal', orderResult.error || 'Error Cashea');
@@ -826,10 +834,11 @@ export const createCasheaOrder = functions.https.onCall(async (data, context) =>
             orderId: orderResult.orderId,
             message: 'Orden creada. Completa el pago en Cashea.'
         };
-    } catch (error) {
+    } catch (error: any) {
+        console.error('🛍️ [FATAL] createCasheaOrder error:', error?.message || error);
+        console.error('🛍️ [FATAL] Stack:', error?.stack);
         if (error instanceof functions.https.HttpsError) throw error;
-        console.error('Cashea Order Error:', error);
-        throw new functions.https.HttpsError('internal', 'Error al crear orden Cashea.');
+        throw new functions.https.HttpsError('internal', `Error Cashea: ${error?.message || 'unknown'}`);
     }
 });
 
@@ -1025,5 +1034,129 @@ export const verifyBatteryReturn = functions.https.onCall(async (data, context) 
     } catch (error: any) {
         console.error('Error verifying battery return:', error);
         throw new functions.https.HttpsError('internal', error.message || 'Error verificando la devolución.');
+    }
+});
+
+/**
+ * PRUEBA PILOTO CASHEA: Endpoint HTTP (Web Gateway)
+ * Retorna un HTML con el SDK de Cashea para crear el pago desde el navegador web / WebView 
+ * en lugar de usar un endpoint backend REST privado.
+ * Uso: Abrir en la app -> https://us-central1-[PROYECTO].cloudfunctions.net/casheaPilotWebCheckout?cedula=15567644&amount=100
+ */
+export const casheaPilotWebCheckout = functions.https.onRequest(async (req, res) => {
+    try {
+        const identificationNumber = req.query.cedula as string || "15567644";
+        const amount = Number(req.query.amount) || 100;
+
+        // Obtenemos todas las credenciales de las variables de entorno de Firebase
+        const publicApiKey = process.env.CASHEA_PUBLIC_API_KEY || "";
+        const storeId = parseInt(process.env.CASHEA_STORE_ID || "0", 10);
+        const storeName = process.env.CASHEA_STORE_NAME || "VoltajeVzla";
+        const externalClientId = process.env.CASHEA_EXTERNAL_CLIENT_ID || "";
+        const invoiceId = `VP-PILOT-${Date.now()}`;
+
+        const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagar con Cashea - VoltajeVzla</title>
+    <!-- Importamos el SDK de webcheckout de Cashea desde unpkg -->
+    <script src="https://unpkg.com/cashea-web-checkout-sdk@1.1.8/dist/webcheckout-sdk.min.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f9f9f9; text-align: center; margin: 0; }
+        .cashea-btn { background-color: #2F3998; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 80%; max-width: 300px; }
+        .cashea-btn:hover { background-color: #1e2568; }
+        #loading { display: none; margin-top: 15px; color: #555; }
+        #error_msg { color: red; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <img src="https://m.voltajevzla.com/static/media/logo.8b2b73ee.png" alt="VoltajeVzla" width="100" style="margin-bottom:20px;">
+    <h2>Pago Seguro con Cashea</h2>
+    <p>Monto de la orden: $${amount}</p>
+    
+    <button class="cashea-btn" id="payCasheaBtn">Pagar con Cashea</button>
+    
+    <div id="loading">Conectando con Cashea...</div>
+    <div id="error_msg"></div>
+
+    <script>
+        document.getElementById('payCasheaBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('payCasheaBtn');
+            const loading = document.getElementById('loading');
+            const errorMsg = document.getElementById('error_msg');
+            
+            btn.style.display = 'none';
+            loading.style.display = 'block';
+            errorMsg.style.display = 'none';
+
+            try {
+                // Verificar si cargó el SDK
+                let CasheaConstructor = null;
+                if (window.WebCheckoutSDK) {
+                    CasheaConstructor = window.WebCheckoutSDK;
+                }
+
+                if (!CasheaConstructor) {
+                    console.log("Window keys:", Object.keys(window).filter(k => k.toLowerCase().includes('cashea') || k.toLowerCase().includes('webcheckout')));
+                    throw new Error("El SDK de Cashea no cargó correctamente (no se encontró WebCheckoutSDK).");
+                }
+                
+                const cashea = new CasheaConstructor({
+                    apiKey: "${publicApiKey}"
+                });
+
+                // Crear el payload con los valores correctos de las variables de entorno
+                const payload = {
+                    identificationNumber: "${identificationNumber}",
+                    externalClientId: "${externalClientId}",
+                    merchantName: "${storeName}",
+                    deliveryMethod: "IN_STORE",
+                    redirectUrl: "https://m.voltajevzla.com",
+                    invoiceId: "${invoiceId}",
+                    deliveryPrice: 0,
+                    orders: [
+                        {
+                            store: { id: ${storeId}, name: "${storeName}", enabled: true },
+                            products: [
+                                {
+                                    id: "RENTAL-" + new Date().getTime(),
+                                    sku: "RENTAL-PB",
+                                    name: "Alquiler Powerbank",
+                                    description: "Alquiler de Power Bank VoltajeVzla",
+                                    price: ${amount},
+                                    quantity: 1,
+                                    tax: 0,
+                                    discount: 0,
+                                    imageUrl: "https://m.voltajevzla.com/static/media/logo.8b2b73ee.png"
+                                }
+                            ]
+                        }
+                    ]
+                };
+                
+                const orderId = await cashea.saveOrderPayload(payload);
+                const redirectUrl = cashea.buildRedirectURL(orderId);
+                
+                window.location.href = redirectUrl;
+            } catch (error) {
+                console.error("Error iniciando Cashea:", error);
+                loading.style.display = 'none';
+                btn.style.display = 'block';
+                errorMsg.innerText = "Error: " + error.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
+    `;
+
+        res.status(200).send(html);
+    } catch (error: any) {
+        console.error("Error en Gateway Cashea:", error);
+        res.status(500).send("Error interno: " + (error.message || String(error)));
     }
 });

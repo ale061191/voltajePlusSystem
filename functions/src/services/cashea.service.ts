@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import https from 'https';
 
 export class CasheaService {
     private apiKey: string;
@@ -17,11 +18,18 @@ export class CasheaService {
         this.externalClientId = process.env.CASHEA_EXTERNAL_CLIENT_ID || '';
         this.isSandbox = (process.env.CASHEA_SANDBOX || 'true') === 'true';
 
+        // ⚠️⚠️⚠️ WARNING: TEMPORARY SSL BYPASS ⚠️⚠️⚠️
+        // Cashea's server (external.cashea.app) has an incomplete SSL certificate chain.
+        // This agent skips SSL verification so we can test while Cashea fixes their server.
+        // TODO: REMOVE THIS once Cashea fixes their SSL certificate chain.
+        const unsafeAgent = new https.Agent({ rejectUnauthorized: false });
+
         this.httpClient = axios.create({
             timeout: 30000,
             headers: {
                 'Content-Type': 'application/json',
             },
+            httpsAgent: unsafeAgent, // ⚠️ TEMPORARY — remove when Cashea fixes SSL
         });
 
         console.log(`🛍️ Cashea Service Initialized`);
@@ -61,7 +69,7 @@ export class CasheaService {
                 redirectUrl: params.redirectUrl,
                 cancelUrl: params.cancelUrl,
                 merchantName: this.storeName,
-                identificationNumber: params.identificationNumber || '00000000',
+                identificationNumber: params.identificationNumber || '15567644',
                 externalClientId: this.externalClientId,
                 invoiceId: `VP-${params.machineId}-${Date.now()}`,
                 deliveryPrice: 0,

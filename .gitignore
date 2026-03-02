@@ -67,6 +67,34 @@ probe_*.py
 trigger_*.py
 verify_otp*.py
 
+# Cashea SDK investigation / debug scripts (root-level, no producción)
+cashea-axios-calls.txt
+cashea-context.txt
+extract-axios.js
+extract-cashea.js
+extract.js
+inspect-cashea.js
+mock-cashea.js
+mock-cashea2.js
+pdf_output.txt
+pdf_output_utf8.txt
+proxy-cashea.js
+read_pdf.js
+run-sdk.js
+test-endpoint.js
+urls.txt
+
+# Root-level package.json/lock generados por scripts de investigación SDK
+# (las dependencias reales están en functions/package.json)
+package.json
+package-lock.json
+
+# Functions test/debug scripts
+functions/test.js
+functions/test2.js
+functions/test3.js
+functions/test4.js
+
 # Temp / operational data
 cabinet_details.json
 station_details.json
