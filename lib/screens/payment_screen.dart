@@ -475,7 +475,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         phoneNumber: _phoneController.text,
         reference: _referenceController.text,
         machineId: widget.machineId,
-        slotId: _selectedSlot,
+        // slotId eliminado → backend usa findAvailableSlot() automáticamente
       );
 
       setState(() {
@@ -552,8 +552,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                result['unlockStatus'] == 'UNLOCKED'
-                    ? 'Tu Powerbank ha sido liberado.\nRetíralo del slot $_selectedSlot.'
+                 result['unlockStatus'] == 'UNLOCKED'
+                    ? 'Tu Powerbank ha sido liberado.\nRetíralo de la máquina.'
                     : 'Pago validado.\nDesbloqueo pendiente - contacta soporte.',
                 style: const TextStyle(color: Colors.white, fontSize: 15),
                 textAlign: TextAlign.center,

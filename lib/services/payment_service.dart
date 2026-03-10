@@ -38,8 +38,8 @@ class PaymentService {
     required String phoneNumber,
     required String reference,
     required String machineId,
-    int slotId = 1,
     String? payerId,
+    // slotId eliminado — el backend usa findAvailableSlot() automáticamente
   }) async {
     try {
       final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
@@ -52,8 +52,8 @@ class PaymentService {
         'phoneNumber': phoneNumber,
         'reference': reference,
         'machineId': machineId,
-        'slotId': slotId,
         'payerId': payerId,
+        // slotId no se envía → backend decide con findAvailableSlot()
       });
 
       return Map<String, dynamic>.from(result.data);

@@ -62,7 +62,7 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
       final result = await callable.call({
         'amount': widget.amount,
         'machineId': widget.machineId,
-        'slotId': widget.slotId,
+        // slotId eliminado → backend usa findAvailableSlot() automáticamente
       });
       debugPrint('Cashea: respuesta recibida: ${result.data}');
 
@@ -132,7 +132,7 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
       final result = await callable.call({
         'idNumber': idNumber,
         'machineId': widget.machineId,
-        'slotId': widget.slotId,
+        // slotId eliminado → backend usa el slot reservado en createCasheaOrder
       });
 
       final data = Map<String, dynamic>.from(result.data as Map);
