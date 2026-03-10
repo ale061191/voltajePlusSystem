@@ -108,18 +108,22 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen>
     });
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable(
+      // Especificar región explícita para evitar ambigüedad en el cliente
+      final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable(
         'createCasheaOrder',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
       );
 
+      debugPrint('Cashea: llamando createCasheaOrder...');
       final result = await callable.call({
         'amount': widget.amount,
         'machineId': widget.machineId,
         'slotId': widget.slotId,
       });
+      debugPrint('Cashea: respuesta recibida: ${result.data}');
 
-      final data = Map<String, dynamic>.from(result.data);
+      final data = Map<String, dynamic>.from(result.data as Map);
 
       if (data['success'] == true && data['checkoutUrl'] != null) {
         _checkoutUrl = data['checkoutUrl'] as String;
@@ -127,9 +131,13 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen>
       } else {
         _setError(data['message'] ?? 'Error al crear la orden de Cashea');
       }
-    } catch (e) {
-      _setError('No se pudo conectar. Verifica tu conexión e intenta de nuevo.');
-      debugPrint('Cashea createOrder Error: $e');
+    } on FirebaseFunctionsException catch (e) {
+      final msg = 'Error Firebase [${e.code}]: ${e.message}';
+      debugPrint('Cashea createOrder FirebaseFunctionsException: $msg\nDetails: ${e.details}');
+      _setError(msg);
+    } catch (e, st) {
+      debugPrint('Cashea createOrder Error: $e\n$st');
+      _setError('Error: $e');
     }
   }
 
@@ -171,9 +179,10 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen>
     setState(() => _step = _CasheaStep.confirming);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable(
+      final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable(
         'confirmCasheaOrder',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
       );
 
       final result = await callable.call({
