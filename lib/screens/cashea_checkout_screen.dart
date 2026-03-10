@@ -145,26 +145,51 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen>
 
   Future<void> _openCheckout(String url) async {
     final uri = Uri.parse(url);
+    bool launched = false;
 
-    // Intento 1: abrir la app nativa de Cashea directamente (App Links).
-    // web.cashea.app tiene assetlinks.json → Android abre com.cashea.app
-    // sin pasar por Chrome ni WebView.
-    bool launched = await launchUrl(
-      uri,
-      mode: LaunchMode.externalNonBrowserApplication,
-    );
-
-    // Intento 2: fallback a Chrome si Cashea no está instalada.
-    if (!launched) {
-      debugPrint('Cashea app no instalada, abriendo en Chrome...');
+    // Intento 1: abrir la app nativa de Cashea (App Links).
+    // Puede lanzar PlatformException(ACTIVITY_NOT_FOUND) si Cashea no está instalada.
+    try {
       launched = await launchUrl(
         uri,
-        mode: LaunchMode.externalApplication,
+        mode: LaunchMode.externalNonBrowserApplication,
       );
+      debugPrint('Cashea: externalNonBrowserApplication launched=$launched');
+    } catch (e) {
+      debugPrint('Cashea: app nativa no disponible, fallback a Chrome. Error: $e');
+      launched = false;
+    }
+
+    // Intento 2: abrir en el navegador externo (Chrome).
+    if (!launched) {
+      try {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        debugPrint('Cashea: externalApplication launched=$launched');
+      } catch (e) {
+        debugPrint('Cashea: externalApplication también falló: $e');
+        launched = false;
+      }
+    }
+
+    // Intento 3: modo por defecto del sistema (última opción).
+    if (!launched) {
+      try {
+        launched = await launchUrl(uri);
+        debugPrint('Cashea: platformDefault launched=$launched');
+      } catch (e) {
+        debugPrint('Cashea: platformDefault falló: $e');
+        launched = false;
+      }
     }
 
     if (!launched) {
-      _setError('No se pudo abrir Cashea. Instala la app de Cashea e intenta de nuevo.');
+      _setError(
+        'No se pudo abrir el navegador.\n'
+        'Instala Chrome e intenta de nuevo.\nURL: $url',
+      );
       return;
     }
     if (mounted) {
