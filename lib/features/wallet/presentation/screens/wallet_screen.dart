@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../services/auth_service.dart';
+import '../../../../screens/wallet_recharge_screen.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -114,7 +115,14 @@ class _WalletScreenState extends State<WalletScreen> {
                           icon: Icons.add,
                           label: "Recargar",
                           enabled: true,
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const WalletRechargeScreen(),
+                              ),
+                            );
+                          },
                         ),
                         _buildActionButton(
                           icon: Icons.arrow_upward,
