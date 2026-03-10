@@ -79,6 +79,7 @@ export class CasheaService {
                             id: this.storeId,
                             name: this.storeName,
                             enabled: true,
+                            type: 'SPLIT',
                         },
                         products: [
                             {
