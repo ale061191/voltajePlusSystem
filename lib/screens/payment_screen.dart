@@ -116,29 +116,79 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Datos para Pago Móvil:",
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Datos para Pago Móvil:",
+                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              const allData =
+                                  'Banco: BNC (0191)\n'
+                                  'Teléfono: 0412-7866892\n'
+                                  'RIF: J-507833453';
+                              Clipboard.setData(
+                                const ClipboardData(text: allData),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Todos los datos copiados'),
+                                  backgroundColor: AppColors.neonGreen,
+                                  duration: Duration(milliseconds: 1500),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.neonGreen.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.neonGreen.withValues(alpha: 0.5),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.copy_all,
+                                    size: 14,
+                                    color: AppColors.neonGreen,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Copiar todo',
+                                    style: TextStyle(
+                                      color: AppColors.neonGreen,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       _buildCopyableRow("Banco:", "BNC (0191)"),
                       _buildCopyableRow("Teléfono:", "0412-7866892"),
                       _buildCopyableRow("RIF:", "J-507833453"),
-                      const SizedBox(height: 8),
-                      const Center(
-                        child: Text(
-                          "(Toca para copiar)",
-                          style: TextStyle(color: Colors.white24, fontSize: 10),
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Slot selection
-              Container(
+              // Slot selection — oculto: la estación decide qué slot expulsar
+              Offstage(
+                offstage: true,
+                child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceDark,
@@ -191,6 +241,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   ],
                 ),
+              ),
               ),
               const SizedBox(height: 16),
 
