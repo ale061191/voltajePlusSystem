@@ -17,7 +17,7 @@ class PaypalWebViewScreen extends StatefulWidget {
 
   // ─── IDs del Hosted Button de PayPal ──────────────────────────────────────
   static const String _clientId =
-      'BAAtbYIlFeepgLIA-tflAvW9yYkhKNFi6tLyreyZnNlA3hpk28EoSoQVQ6eqhKJvn56bvFFuGWTs0AX_2Y';
+      'ARLh4FmU7q0mPgeackVbOQJpGmUZOIfqCD_E6ZfJuUf4wSuTpqiAUMrQDDnaEJxdajO0MONHiunsjRL3';
   static const String _hostedButtonId = 'Q6GUDGHXLHQQA';
   // ──────────────────────────────────────────────────────────────────────────
 
