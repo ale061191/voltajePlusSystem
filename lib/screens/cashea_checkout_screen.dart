@@ -137,12 +137,26 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen>
 
   Future<void> _openCheckout(String url) async {
     final uri = Uri.parse(url);
-    final launched = await launchUrl(
+
+    // Intento 1: abrir la app nativa de Cashea directamente (App Links).
+    // web.cashea.app tiene assetlinks.json → Android abre com.cashea.app
+    // sin pasar por Chrome ni WebView.
+    bool launched = await launchUrl(
       uri,
-      mode: LaunchMode.externalApplication, // abre Chrome, no WebView interno
+      mode: LaunchMode.externalNonBrowserApplication,
     );
+
+    // Intento 2: fallback a Chrome si Cashea no está instalada.
     if (!launched) {
-      _setError('No se pudo abrir el navegador. Instala Chrome e intenta de nuevo.');
+      debugPrint('Cashea app no instalada, abriendo en Chrome...');
+      launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    }
+
+    if (!launched) {
+      _setError('No se pudo abrir Cashea. Instala la app de Cashea e intenta de nuevo.');
       return;
     }
     if (mounted) {

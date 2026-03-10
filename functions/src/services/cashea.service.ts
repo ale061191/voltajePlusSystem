@@ -127,7 +127,7 @@ export class CasheaService {
                 };
             }
 
-            const checkoutUrl = `${this.getCheckoutBaseUrl()}/?orderPayloadId=${orderPayloadId}`;
+            const checkoutUrl = `${this.getCheckoutBaseUrl()}/?order-payload-id=${orderPayloadId}`;
 
             console.log(`🛍️ Cashea order created: ${orderPayloadId}`);
             console.log(`🛍️ Checkout URL: ${checkoutUrl}`);
