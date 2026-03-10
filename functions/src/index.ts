@@ -807,8 +807,9 @@ export const createCasheaOrder = functions.https.onCall(async (data, context) =>
             amount: Number(amount),
             machineId,
             slotId: slotId || 1,
-            redirectUrl: `https://voltaje.app/cashea/success`,
-            cancelUrl: `https://voltaje.app/cashea/cancel`,
+            // Deep link: la app Flutter captura este URI para detectar el retorno
+            redirectUrl: `voltaje://cashea/return`,
+            cancelUrl: `voltaje://cashea/cancel`,
         });
         console.log(`🛍️ [STEP 5] Order result: ${JSON.stringify(orderResult)}`);
 

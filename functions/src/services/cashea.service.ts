@@ -42,9 +42,9 @@ export class CasheaService {
      * Get the checkout base URL based on environment
      */
     private getCheckoutBaseUrl(): string {
-        return this.isSandbox
-            ? 'https://sandbox-checkout.cashea.com.ve'
-            : 'https://checkout.cashea.com.ve';
+        // URL real del checkout de Cashea (confirmada desde el SDK oficial).
+        // checkout.cashea.com.ve y sandbox-checkout.cashea.com.ve no existen.
+        return 'https://web.cashea.app';
     }
 
     /**
@@ -112,7 +112,12 @@ export class CasheaService {
                 }
             );
 
-            const orderPayloadId = response.data?.orderPayloadId || response.data?.id;
+            // Cashea API returns the orderPayloadId as a plain number (e.g. 163806),
+            // not as a JSON object. Handle both cases for safety.
+            const orderPayloadId =
+                (typeof response.data === 'number' || typeof response.data === 'string')
+                    ? response.data
+                    : response.data?.orderPayloadId || response.data?.id;
 
             if (!orderPayloadId) {
                 console.error('🛍️ No orderPayloadId in response:', response.data);

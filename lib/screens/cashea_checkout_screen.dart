@@ -1,9 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:app_links/app_links.dart';
 import '../core/constants/app_colors.dart';
 import '../../services/location_tracking_service.dart';
 
+/// Flujo Cashea:
+/// 1. Llama al backend → obtiene checkoutUrl (web.cashea.app/?orderPayloadId=X)
+/// 2. Abre Chrome (navegador externo) con esa URL
+/// 3. Cashea redirige a voltaje://cashea/return?idNumber=XXX al confirmar
+///    o   voltaje://cashea/cancel si el usuario cancela
+/// 4. La app captura el deep link y confirma el pago con el backend
 class CasheaCheckoutScreen extends StatefulWidget {
   final String machineId;
   final int slotId;
@@ -20,30 +28,89 @@ class CasheaCheckoutScreen extends StatefulWidget {
   State<CasheaCheckoutScreen> createState() => _CasheaCheckoutScreenState();
 }
 
-class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
-  bool _isLoadingOrder = true;
-  bool _isConfirming = false;
-  bool _orderCreated = false;
-  String? _checkoutUrl;
+enum _CasheaStep {
+  creatingOrder,   // llamando al backend
+  waitingUser,     // Chrome abierto, esperando que el usuario complete el pago
+  confirming,      // recibido deep link, confirmando con el backend
+  done,            // proceso terminado (éxito o error)
+  error,
+}
+
+class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen>
+    with WidgetsBindingObserver {
+  _CasheaStep _step = _CasheaStep.creatingOrder;
   String? _errorMessage;
-  String? _orderId;
-  WebViewController? _webViewController;
+  String? _checkoutUrl;
+
+  // Deep link listener
+  final _appLinks = AppLinks();
+  StreamSubscription<Uri>? _deepLinkSub;
+
+  // Evitar doble confirmación
+  bool _confirmationHandled = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _listenDeepLinks();
     _createCasheaOrder();
   }
 
-  Future<void> _createCasheaOrder() async {
-    try {
-      setState(() {
-        _isLoadingOrder = true;
-        _errorMessage = null;
-      });
+  @override
+  void dispose() {
+    _deepLinkSub?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+  // ─── Deep link listener ───────────────────────────────────────────────────
+
+  void _listenDeepLinks() {
+    _deepLinkSub = _appLinks.uriLinkStream.listen((uri) {
+      debugPrint('Deep link recibido: $uri');
+      _handleDeepLink(uri);
+    }, onError: (e) {
+      debugPrint('Error deep link: $e');
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (_confirmationHandled) return;
+    if (uri.scheme != 'voltaje' || uri.host != 'cashea') return;
+
+    if (uri.path == '/return') {
+      final idNumber = uri.queryParameters['idNumber'];
+      if (idNumber != null && idNumber.isNotEmpty) {
+        _confirmationHandled = true;
+        _confirmCasheaOrder(idNumber);
+      } else {
+        // Retorno sin idNumber — Cashea confirmó pero sin ID en la URL
+        // Intentar usar el orderId que tenemos
+        _setError(
+          'Cashea devolvió una respuesta sin número de orden.\n'
+          'Contacta a soporte si el pago fue procesado.',
+        );
+      }
+    } else if (uri.path == '/cancel') {
+      _confirmationHandled = true;
+      _setError('Pago cancelado por el usuario.');
+    }
+  }
+
+  // ─── Backend: crear orden ─────────────────────────────────────────────────
+
+  Future<void> _createCasheaOrder() async {
+    setState(() {
+      _step = _CasheaStep.creatingOrder;
+      _errorMessage = null;
+      _confirmationHandled = false;
+    });
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable(
         'createCasheaOrder',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
       );
 
       final result = await callable.call({
@@ -55,71 +122,44 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
       final data = Map<String, dynamic>.from(result.data);
 
       if (data['success'] == true && data['checkoutUrl'] != null) {
-        setState(() {
-          _checkoutUrl = data['checkoutUrl'];
-          _orderId = data['orderId'];
-          _orderCreated = true;
-          _isLoadingOrder = false;
-        });
-        _initWebView();
+        _checkoutUrl = data['checkoutUrl'] as String;
+        await _openCheckout(_checkoutUrl!);
       } else {
-        setState(() {
-          _errorMessage =
-              data['message'] ?? 'Error al crear la orden de Cashea';
-          _isLoadingOrder = false;
-        });
+        _setError(data['message'] ?? 'Error al crear la orden de Cashea');
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error: $e';
-        _isLoadingOrder = false;
-      });
-      debugPrint('Cashea Order Error: $e');
+      _setError('No se pudo conectar. Verifica tu conexión e intenta de nuevo.');
+      debugPrint('Cashea createOrder Error: $e');
     }
   }
 
-  void _initWebView() {
-    if (_checkoutUrl == null) return;
+  // ─── Abrir checkout en Chrome ─────────────────────────────────────────────
 
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(AppColors.backgroundBlack)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onNavigationRequest: (NavigationRequest request) {
-            // Detect redirect back from Cashea with idNumber
-            final uri = Uri.tryParse(request.url);
-            if (uri != null && uri.queryParameters.containsKey('idNumber')) {
-              final idNumber = uri.queryParameters['idNumber']!;
-              _confirmCasheaOrder(idNumber);
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-          onPageFinished: (String url) {
-            // Also check the final URL after page loads
-            final uri = Uri.tryParse(url);
-            if (uri != null && uri.queryParameters.containsKey('idNumber')) {
-              final idNumber = uri.queryParameters['idNumber']!;
-              _confirmCasheaOrder(idNumber);
-            }
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(_checkoutUrl!));
+  Future<void> _openCheckout(String url) async {
+    final uri = Uri.parse(url);
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication, // abre Chrome, no WebView interno
+    );
+    if (!launched) {
+      _setError('No se pudo abrir el navegador. Instala Chrome e intenta de nuevo.');
+      return;
+    }
+    if (mounted) {
+      setState(() => _step = _CasheaStep.waitingUser);
+    }
   }
 
-  Future<void> _confirmCasheaOrder(String idNumber) async {
-    if (_isConfirming) return;
+  // ─── Backend: confirmar pago ──────────────────────────────────────────────
 
-    setState(() {
-      _isConfirming = true;
-      _orderCreated = false; // hide webview
-    });
+  Future<void> _confirmCasheaOrder(String idNumber) async {
+    if (!mounted) return;
+    setState(() => _step = _CasheaStep.confirming);
 
     try {
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+      final callable = FirebaseFunctions.instance.httpsCallable(
         'confirmCasheaOrder',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
       );
 
       final result = await callable.call({
@@ -130,15 +170,18 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
 
       final data = Map<String, dynamic>.from(result.data);
 
-      if (mounted) {
-        if (data['unlockStatus'] == 'UNLOCKED') {
-          LocationTrackingService().startTracking(widget.machineId);
-        }
-        _showResultDialog(
-          success: data['unlockStatus'] == 'UNLOCKED',
-          message: data['message'] ?? 'Proceso completado',
-        );
+      if (!mounted) return;
+
+      if (data['unlockStatus'] == 'UNLOCKED') {
+        LocationTrackingService().startTracking(widget.machineId);
       }
+
+      setState(() => _step = _CasheaStep.done);
+
+      _showResultDialog(
+        success: data['unlockStatus'] == 'UNLOCKED',
+        message: data['message'] ?? 'Proceso completado',
+      );
     } catch (e) {
       if (mounted) {
         _showResultDialog(
@@ -146,10 +189,18 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
           message: 'Error al confirmar el pago. Contacta soporte.',
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isConfirming = false);
-      }
+      debugPrint('Cashea confirmOrder Error: $e');
+    }
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  void _setError(String message) {
+    if (mounted) {
+      setState(() {
+        _step = _CasheaStep.error;
+        _errorMessage = message;
+      });
     }
   }
 
@@ -181,7 +232,6 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              // Pop back to home
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
             child: Text(
@@ -196,6 +246,8 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
       ),
     );
   }
+
+  // ─── UI ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -214,106 +266,150 @@ class _CasheaCheckoutScreenState extends State<CasheaCheckoutScreen> {
   }
 
   Widget _buildBody() {
-    // Loading state: creating order
-    if (_isLoadingOrder) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(color: AppColors.neonCyan),
-            const SizedBox(height: 24),
-            const Text(
-              'Preparando tu pago con Cashea...',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Máquina: ${widget.machineId}',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Error state
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
+    switch (_step) {
+      // ── Creando la orden ──
+      case _CasheaStep.creatingOrder:
+        return const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                color: AppColors.neonRed,
-                size: 56,
-              ),
-              const SizedBox(height: 16),
+              CircularProgressIndicator(color: AppColors.neonCyan),
+              SizedBox(height: 20),
               Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _createCasheaOrder,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reintentar'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.neonCyan,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                'Preparando pago con Cashea...',
+                style: TextStyle(color: Colors.white, fontSize: 15),
               ),
             ],
           ),
-        ),
-      );
-    }
+        );
 
-    // Confirming state
-    if (_isConfirming) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(color: AppColors.neonGreen),
-            const SizedBox(height: 24),
-            const Text(
-              'Confirmando pago y desbloqueando...',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+      // ── Chrome abierto, esperando usuario ──
+      case _CasheaStep.waitingUser:
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceDark,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.open_in_browser,
+                    size: 44,
+                    color: AppColors.neonCyan,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Completa el pago en Cashea',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Se abrió el navegador con la pantalla de pago.\n'
+                  'Cuando confirmes el pago, la app se actualizará automáticamente.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                // Botón para reabrir Chrome si el usuario lo cerró
+                OutlinedButton.icon(
+                  onPressed: _checkoutUrl != null
+                      ? () => _openCheckout(_checkoutUrl!)
+                      : null,
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: const Text('Volver a abrir Cashea'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.neonCyan,
+                    side: const BorderSide(color: AppColors.neonCyan),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'No cierres la aplicación',
-              style: TextStyle(
-                color: AppColors.neonGreen.withValues(alpha: 0.7),
-                fontSize: 13,
+          ),
+        );
+
+      // ── Confirmando con el backend ──
+      case _CasheaStep.confirming:
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: AppColors.neonGreen),
+              SizedBox(height: 20),
+              Text(
+                'Confirmando pago y desbloqueando...',
+                style: TextStyle(color: Colors.white, fontSize: 15),
               ),
+              SizedBox(height: 8),
+              Text(
+                'No cierres la aplicación',
+                style: TextStyle(color: AppColors.neonGreen, fontSize: 13),
+              ),
+            ],
+          ),
+        );
+
+      // ── Error ──
+      case _CasheaStep.error:
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline,
+                    color: AppColors.neonRed, size: 56),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage ?? 'Error desconocido',
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _createCasheaOrder,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reintentar'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.neonCyan,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          ),
+        );
 
-    // WebView state
-    if (_orderCreated && _webViewController != null) {
-      return WebViewWidget(controller: _webViewController!);
+      case _CasheaStep.done:
+        return const Center(
+          child: CircularProgressIndicator(color: AppColors.neonGreen),
+        );
     }
-
-    // Fallback
-    return const Center(
-      child: Text('Estado desconocido', style: TextStyle(color: Colors.white)),
-    );
   }
 }
