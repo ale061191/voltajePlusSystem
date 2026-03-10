@@ -4,20 +4,8 @@ import 'paypal_webview_screen.dart';
 
 /// Pantalla "Métodos de Recarga" — equivalente a PaymentMethodScreen
 /// pero para recargar el saldo de la wallet.
-///
-/// CONFIGURACIÓN:
-/// Cuando tengas el Payment Link de PayPal creado en
-/// https://www.paypal.com/buttons, reemplaza el valor de [_paypalLink]
-/// con tu URL real (ej. "https://www.paypal.com/ncp/payment/XXXXXXXXXXXXXXXX").
-///
-/// El monto lo controla el link de PayPal directamente.
 class WalletRechargeScreen extends StatelessWidget {
   const WalletRechargeScreen({super.key});
-
-  // ─── Reemplaza esta URL con tu Payment Link de PayPal ────────────────────
-  static const String _paypalLink =
-      'https://www.paypal.com/ncp/payment/TU_PAYMENT_LINK_AQUI';
-  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +89,6 @@ class WalletRechargeScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => PaypalWebViewScreen(
-                        paymentLink: _paypalLink,
                         onSuccess: () {
                           Navigator.pop(context); // cierra WebView
                           ScaffoldMessenger.of(context).showSnackBar(

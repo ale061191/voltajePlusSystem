@@ -1161,3 +1161,227 @@ export const casheaPilotWebCheckout = functions.https.onRequest(async (req, res)
         res.status(500).send("Error interno: " + (error.message || String(error)));
     }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// paypalWebhook — Recibe eventos de PayPal y acredita saldo en wallet
+//
+// Configuración requerida (una sola vez):
+//   1. Ve a developer.paypal.com → My Apps & Credentials → tu app
+//   2. Webhooks → Add Webhook
+//   3. URL: https://us-central1-voltajevzla-25454.cloudfunctions.net/paypalWebhook
+//   4. Evento: PAYMENT.CAPTURE.COMPLETED
+//   5. Copia el Webhook ID generado y ponlo en functions/.env como PAYPAL_WEBHOOK_ID
+//   6. Copia el Client Secret de tu app y ponlo como PAYPAL_CLIENT_SECRET
+//
+// Flujo:
+//   PayPal → POST /paypalWebhook → verificar firma → leer custom_id (uid Firebase)
+//   → acreditar USD en wallet → guardar transacción en Firestore
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const paypalWebhook = functions.https.onRequest(async (req, res) => {
+    // Solo aceptar POST
+    if (req.method !== 'POST') {
+        res.status(405).send('Method Not Allowed');
+        return;
+    }
+
+    const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
+    const PAYPAL_CLIENT_ID  = process.env.PAYPAL_CLIENT_ID  || '';
+    const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
+    const PAYPAL_MODE       = process.env.PAYPAL_MODE || 'live';
+    const PAYPAL_API_BASE   = PAYPAL_MODE === 'sandbox'
+        ? 'https://api-m.sandbox.paypal.com'
+        : 'https://api-m.paypal.com';
+
+    try {
+        const body = req.body as Record<string, any>;
+        const eventType: string = body?.event_type || '';
+
+        console.log(`📦 PayPal Webhook recibido: ${eventType}`);
+
+        // ── 1. Verificar firma del webhook con la API de PayPal ──────────────
+        // Solo verificamos si el Webhook ID está configurado.
+        // Si no está configurado aún, aceptamos (modo desarrollo).
+        if (PAYPAL_WEBHOOK_ID && PAYPAL_CLIENT_ID && PAYPAL_CLIENT_SECRET) {
+            try {
+                // Obtener access token de PayPal
+                const tokenRes = await axios.post(
+                    `${PAYPAL_API_BASE}/v1/oauth2/token`,
+                    'grant_type=client_credentials',
+                    {
+                        auth: { username: PAYPAL_CLIENT_ID, password: PAYPAL_CLIENT_SECRET },
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    }
+                );
+                const accessToken: string = tokenRes.data.access_token;
+
+                // Verificar firma del webhook
+                const verifyRes = await axios.post(
+                    `${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`,
+                    {
+                        auth_algo:         req.headers['paypal-auth-algo'],
+                        cert_url:          req.headers['paypal-cert-url'],
+                        transmission_id:   req.headers['paypal-transmission-id'],
+                        transmission_sig:  req.headers['paypal-transmission-sig'],
+                        transmission_time: req.headers['paypal-transmission-time'],
+                        webhook_id:        PAYPAL_WEBHOOK_ID,
+                        webhook_event:     body
+                    },
+                    {
+                        headers: { Authorization: `Bearer ${accessToken}` }
+                    }
+                );
+
+                const verificationStatus: string = verifyRes.data?.verification_status;
+                if (verificationStatus !== 'SUCCESS') {
+                    console.warn(`⚠️ PayPal webhook firma inválida: ${verificationStatus}`);
+                    res.status(400).json({ error: 'Invalid webhook signature' });
+                    return;
+                }
+                console.log('✅ Firma PayPal verificada correctamente');
+            } catch (verifyError: any) {
+                console.error('Error verificando firma PayPal:', verifyError?.response?.data || verifyError.message);
+                // En caso de fallo de verificación, rechazar el evento
+                res.status(400).json({ error: 'Webhook verification failed' });
+                return;
+            }
+        } else {
+            console.warn('⚠️ PAYPAL_WEBHOOK_ID o credenciales no configuradas — saltando verificación de firma');
+        }
+
+        // ── 2. Solo procesar PAYMENT.CAPTURE.COMPLETED ──────────────────────
+        if (eventType !== 'PAYMENT.CAPTURE.COMPLETED') {
+            // Eventos no relevantes: responder 200 para que PayPal no reintente
+            console.log(`ℹ️ Evento ignorado: ${eventType}`);
+            res.status(200).json({ received: true, processed: false });
+            return;
+        }
+
+        // ── 3. Extraer datos del evento ──────────────────────────────────────
+        const resource = body?.resource || {};
+        const captureId: string   = resource?.id || '';
+        const captureStatus: string = resource?.status || '';
+
+        // El monto capturado (en USD)
+        const amountUsd = parseFloat(resource?.amount?.value || '0');
+        const currency: string  = resource?.amount?.currency_code || 'USD';
+
+        // custom_id — aquí ponemos el uid de Firebase desde el JS del WebView
+        // Por ahora usamos el purchase_unit supplementary_data o custom_id del pago
+        const customId: string = resource?.custom_id
+            || resource?.purchase_units?.[0]?.custom_id
+            || '';
+
+        console.log(`💳 Capture: id=${captureId} status=${captureStatus} amount=${amountUsd} ${currency} customId=${customId}`);
+
+        if (captureStatus !== 'COMPLETED') {
+            console.log(`ℹ️ Capture status no COMPLETED: ${captureStatus}`);
+            res.status(200).json({ received: true, processed: false, reason: 'not_completed' });
+            return;
+        }
+
+        if (amountUsd <= 0) {
+            console.error('❌ Monto inválido en webhook PayPal:', resource?.amount);
+            res.status(200).json({ received: true, processed: false, reason: 'invalid_amount' });
+            return;
+        }
+
+        // ── 4. Idempotencia — evitar acreditar el mismo capture dos veces ────
+        const captureRef = db.collection('voltaje_paypal_captures').doc(captureId);
+        const captureDoc = await captureRef.get();
+        if (captureDoc.exists) {
+            console.log(`⏭️ Capture ${captureId} ya procesado — ignorando`);
+            res.status(200).json({ received: true, processed: false, reason: 'already_processed' });
+            return;
+        }
+
+        // ── 5. Buscar uid del usuario ─────────────────────────────────────────
+        // Si el botón de PayPal tiene custom_id = uid de Firebase, usarlo.
+        // Si no, intentar buscar por email (payer.email_address).
+        let uid: string | null = customId || null;
+
+        if (!uid) {
+            const payerEmail: string = resource?.payer?.email_address || '';
+            if (payerEmail) {
+                try {
+                    const userRecord = await admin.auth().getUserByEmail(payerEmail);
+                    uid = userRecord.uid;
+                    console.log(`🔍 uid encontrado por email ${payerEmail}: ${uid}`);
+                } catch (_e) {
+                    console.warn(`⚠️ No se encontró usuario para email: ${payerEmail}`);
+                }
+            }
+        }
+
+        if (!uid) {
+            // No podemos acreditar sin uid — registrar para revisión manual
+            console.error(`❌ No se pudo determinar uid para capture ${captureId}`);
+            await db.collection('voltaje_paypal_unmatched').add({
+                captureId,
+                amountUsd,
+                currency,
+                resource,
+                receivedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            res.status(200).json({ received: true, processed: false, reason: 'uid_not_found' });
+            return;
+        }
+
+        // ── 6. Acreditar saldo en wallet (en USD) ────────────────────────────
+        const userRef = db.collection(COLLECTIONS.USERS).doc(uid);
+        const userSnap = await userRef.get();
+
+        if (!userSnap.exists) {
+            await userRef.set({
+                walletBalance: amountUsd,
+                walletCurrencyUSD: amountUsd,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await userRef.update({
+                walletBalance: admin.firestore.FieldValue.increment(amountUsd),
+                walletCurrencyUSD: admin.firestore.FieldValue.increment(amountUsd)
+            });
+        }
+
+        const updatedUser = await userRef.get();
+        const newBalance = updatedUser.data()?.walletBalance || amountUsd;
+        console.log(`💰 Wallet acreditada: +${amountUsd} USD => nuevo saldo: ${newBalance}`);
+
+        // ── 7. Registrar transacción en Firestore ────────────────────────────
+        await db.collection(COLLECTIONS.TRANSACTIONS).add({
+            uid,
+            type: 'PAYPAL_TOPUP',
+            amountUsd,
+            amount: amountUsd,
+            currency,
+            captureId,
+            paypalEventId: body?.id || '',
+            payerEmail: resource?.payer?.email_address || '',
+            status: 'COMPLETED',
+            walletBalanceAfter: newBalance,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // ── 8. Marcar capture como procesado (idempotencia) ──────────────────
+        await captureRef.set({
+            uid,
+            amountUsd,
+            processedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log(`✅ PayPal recarga completada para uid=${uid}: +${amountUsd} USD`);
+        res.status(200).json({
+            received: true,
+            processed: true,
+            uid,
+            amountUsd,
+            newBalance
+        });
+
+    } catch (error: any) {
+        console.error('❌ Error en paypalWebhook:', error?.message || error);
+        // Responder 200 para evitar reintentos de PayPal en errores internos
+        res.status(200).json({ received: true, error: 'internal_error' });
+    }
+});
