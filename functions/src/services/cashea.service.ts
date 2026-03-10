@@ -69,7 +69,7 @@ export class CasheaService {
                 redirectUrl: params.redirectUrl,
                 cancelUrl: params.cancelUrl,
                 merchantName: this.storeName,
-                identificationNumber: params.identificationNumber || '15567644',
+                identificationNumber: params.identificationNumber || '19932878',
                 externalClientId: this.externalClientId,
                 invoiceId: `VP-${params.machineId}-${Date.now()}`,
                 deliveryPrice: 0,
@@ -102,11 +102,11 @@ export class CasheaService {
             // The SDK uses the API key to authenticate and create the order
             // The checkout SDK internally calls the Cashea API to get an orderPayloadId
             const response = await this.httpClient.post(
-                'https://external.cashea.app/orders',
+                'https://external-api-bldo3ynb.uk.gateway.dev/web-checkout/payload',
                 payload,
                 {
                     headers: {
-                        'x-api-key': this.apiKey,
+                        'Authorization': `ApiKey ${this.apiKey}`,
                         'Content-Type': 'application/json',
                     },
                 }
@@ -157,7 +157,7 @@ export class CasheaService {
                 {},
                 {
                     headers: {
-                        'x-api-key': this.privateApiKey,
+                        'Authorization': `ApiKey ${this.privateApiKey}`,
                         'Content-Type': 'application/json',
                     },
                 }
@@ -188,10 +188,10 @@ export class CasheaService {
     }> {
         try {
             const response = await this.httpClient.get(
-                `https://api.cashea.com.ve/v1/orders/${idNumber}`,
+                `https://external.cashea.app/orders/${idNumber}`,
                 {
                     headers: {
-                        'x-api-key': this.apiKey,
+                        'Authorization': `ApiKey ${this.privateApiKey}`,
                     },
                 }
             );
@@ -220,7 +220,7 @@ export class CasheaService {
                 `https://external.cashea.app/orders/${idNumber}`,
                 {
                     headers: {
-                        'x-api-key': this.privateApiKey,
+                        'Authorization': `ApiKey ${this.privateApiKey}`,
                     },
                 }
             );
