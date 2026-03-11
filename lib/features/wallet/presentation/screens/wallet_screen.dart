@@ -365,7 +365,10 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('withdrawFunds');
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'withdrawFunds',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 90)),
+      );
       final resp = await callable.call({
         'amount': double.parse(_amountCtrl.text.trim()),
         'bankCode': _selectedBankCode,
@@ -378,17 +381,35 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       final success = resp.data['success'] == true;
       final message = resp.data['message'] ?? 'Procesado';
       final newBalance = (resp.data['newBalance'] as num?)?.toDouble() ?? 0;
+      final alreadyProcessed = resp.data['alreadyProcessed'] == true;
 
       if (!mounted) return;
 
       if (success) {
         widget.onSuccess(newBalance);
-        _showSuccessDialog(message, newBalance);
+        _showSuccessDialog(
+          alreadyProcessed
+              ? 'Tu retiro ya fue procesado anteriormente. Si no recibiste el dinero, contacta soporte.'
+              : message,
+          newBalance,
+        );
       } else {
         _showErrorSnack(message);
       }
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      if (e.code == 'already-exists') {
+        // Retiro duplicado — puede que el primero ya se procesó
+        _showErrorSnack(e.message ?? 'Ya hay un retiro en proceso. Espera 2 minutos.');
+      } else if (e.code == 'deadline-exceeded' || e.code == 'unavailable') {
+        _showErrorSnack(
+          'La operación tardó más de lo esperado. Verifica tu saldo antes de reintentar — el retiro puede haberse procesado.',
+        );
+      } else {
+        _showErrorSnack(e.message ?? '$e');
+      }
     } catch (e) {
-      if (mounted) _showErrorSnack("$e");
+      if (mounted) _showErrorSnack('Error inesperado. Verifica tu saldo antes de reintentar.');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }

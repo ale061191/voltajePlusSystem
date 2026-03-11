@@ -292,7 +292,7 @@ export const getStations = functions.https.onCall(async (data, _context) => {
 /**
  * withdrawFunds — Send money from wallet to user's bank via BNC P2P
  */
-export const withdrawFunds = functions.https.onCall(async (data, context) => {
+export const withdrawFunds = functions.runWith({ timeoutSeconds: 60 }).https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const { amount, bankCode, phoneNumber, personalId, beneficiaryName, description } = data;
 
@@ -308,9 +308,37 @@ export const withdrawFunds = functions.https.onCall(async (data, context) => {
     console.log(`💸 Withdrawal by ${uid}: ${withdrawAmount} VES to ${phoneNumber}`);
 
     const userRef = db.collection(COLLECTIONS.USERS).doc(uid);
+    // Idempotencia: clave única por uid + monto + teléfono + ventana de 2 minutos
+    const idempotencyKey = `${uid}_${withdrawAmount}_${phoneNumber}_${Math.floor(Date.now() / 120000)}`;
+    const lockRef = db.collection('voltaje_withdrawal_locks').doc(idempotencyKey);
 
     try {
-        const walletBalance = await db.runTransaction(async (tx) => {
+        // ── 1. Verificar lock de idempotencia ────────────────────────────────
+        const lockSnap = await lockRef.get();
+        if (lockSnap.exists) {
+            const lockData = lockSnap.data();
+            console.log(`⚠️ Retiro duplicado bloqueado para uid=${uid} (lock=${idempotencyKey})`);
+            // Si ya completó, devolver resultado previo
+            if (lockData?.status === 'COMPLETED') {
+                return {
+                    success: true,
+                    message: 'Reintegro ya procesado anteriormente',
+                    reference: lockData.reference || 'PENDING',
+                    newBalance: lockData.newBalance ?? 0,
+                    date: lockData.completedAt || new Date().toISOString(),
+                    alreadyProcessed: true
+                };
+            }
+            // Si está en proceso, rechazar reintento
+            throw new functions.https.HttpsError(
+                'already-exists',
+                'Ya hay un retiro en proceso. Espera 2 minutos antes de intentar de nuevo.'
+            );
+        }
+
+        // ── 2. Crear lock + descontar saldo en una transacción atómica ───────
+        let walletBalance = 0;
+        await db.runTransaction(async (tx) => {
             const userDoc = await tx.get(userRef);
 
             if (!userDoc.exists) {
@@ -326,17 +354,32 @@ export const withdrawFunds = functions.https.onCall(async (data, context) => {
                 );
             }
 
+            walletBalance = balance;
+
+            // Descontar saldo
             tx.update(userRef, {
                 walletBalance: admin.firestore.FieldValue.increment(-withdrawAmount)
             });
 
-            return balance;
+            // Crear lock PENDING (dentro de la misma transacción)
+            tx.set(lockRef, {
+                uid,
+                amount: withdrawAmount,
+                phoneNumber,
+                status: 'PENDING',
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
         });
 
+        // ── 3. Llamar a BNC ──────────────────────────────────────────────────
         const bncPayment = new BncPaymentService();
         const logonRes = await bncPayment.logon();
         if (!logonRes.success) {
-            await userRef.update({ walletBalance: admin.firestore.FieldValue.increment(withdrawAmount) });
+            // Revertir saldo + marcar lock como FAILED
+            await Promise.all([
+                userRef.update({ walletBalance: admin.firestore.FieldValue.increment(withdrawAmount) }),
+                lockRef.update({ status: 'FAILED', reason: `Logon BNC: ${logonRes.message}` })
+            ]);
             throw new functions.https.HttpsError('internal', `Error Banco: ${logonRes.message}`);
         }
 
@@ -347,34 +390,46 @@ export const withdrawFunds = functions.https.onCall(async (data, context) => {
             beneficiaryID: personalId,
             beneficiaryName: beneficiaryName,
             description: description || 'Reintegro Voltaje',
-            operationRef: Date.now().toString()
+            operationRef: idempotencyKey
         });
 
         if (!payoutRes.success) {
-            await userRef.update({ walletBalance: admin.firestore.FieldValue.increment(withdrawAmount) });
+            // Revertir saldo + marcar lock como FAILED
+            await Promise.all([
+                userRef.update({ walletBalance: admin.firestore.FieldValue.increment(withdrawAmount) }),
+                lockRef.update({ status: 'FAILED', reason: `P2C BNC: ${payoutRes.message}` })
+            ]);
             throw new functions.https.HttpsError('aborted', `Retiro Fallido: ${payoutRes.message}`);
         }
 
-        await db.collection(COLLECTIONS.TRANSACTIONS).add({
-            uid,
-            type: 'P2C_WITHDRAWAL',
-            amount: withdrawAmount,
-            bankCode,
-            phoneNumber,
-            personalId,
-            beneficiaryName,
-            reference: payoutRes.data?.Reference || 'PENDING',
-            previousBalance: walletBalance,
-            newBalance: walletBalance - withdrawAmount,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
+        // ── 4. Guardar transacción + marcar lock COMPLETED ───────────────────
+        const reference = payoutRes.data?.Reference || 'PENDING';
+        const newBalance = walletBalance - withdrawAmount;
+        const completedAt = new Date().toISOString();
+
+        await Promise.all([
+            db.collection(COLLECTIONS.TRANSACTIONS).add({
+                uid,
+                type: 'P2C_WITHDRAWAL',
+                amount: withdrawAmount,
+                bankCode,
+                phoneNumber,
+                personalId,
+                beneficiaryName,
+                reference,
+                previousBalance: walletBalance,
+                newBalance,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            }),
+            lockRef.update({ status: 'COMPLETED', reference, newBalance, completedAt })
+        ]);
 
         return {
             success: true,
             message: 'Reintegro Procesado Exitosamente',
-            reference: payoutRes.data?.Reference || 'PENDING',
-            newBalance: walletBalance - withdrawAmount,
-            date: new Date().toISOString()
+            reference,
+            newBalance,
+            date: completedAt
         };
     } catch (error) {
         if (error instanceof functions.https.HttpsError) throw error;
