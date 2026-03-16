@@ -19,7 +19,8 @@ const COLLECTIONS = {
     TRANSACTIONS: 'voltaje_transactions',
     COUPONS: 'voltaje_coupons',
     COUPON_QUOTAS: 'voltaje_coupon_quotas',
-    ACTIVE_RENTALS: 'voltaje_active_rentals'
+    ACTIVE_RENTALS: 'voltaje_active_rentals',
+    RENTAL_HISTORY: 'voltaje_rental_history'
 } as const;
 
 function requireAuth(context: functions.https.CallableContext): string {
@@ -1031,7 +1032,7 @@ export const verifyBatteryReturn = functions.https.onCall(async (data, context) 
 
     try {
         // 1. Get user's active rental
-        const rentalDoc = await db.collection('active_rentals').doc(uid).get();
+        const rentalDoc = await db.collection(COLLECTIONS.ACTIVE_RENTALS).doc(uid).get();
         if (!rentalDoc.exists) {
             throw new functions.https.HttpsError('not-found', 'No tienes ningún alquiler activo.');
         }
@@ -1071,7 +1072,7 @@ export const verifyBatteryReturn = functions.https.onCall(async (data, context) 
             const endedAt = admin.firestore.FieldValue.serverTimestamp();
 
             // Move to history
-            await db.collection('rental_history').add({
+            await db.collection(COLLECTIONS.RENTAL_HISTORY).add({
                 ...rentalData,
                 returnMachineId: resolvedCabinetId,
                 returnSlotId: slotReturned,
@@ -1080,7 +1081,7 @@ export const verifyBatteryReturn = functions.https.onCall(async (data, context) 
             });
 
             // Delete active rental to stop tracker
-            await db.collection('active_rentals').doc(uid).delete();
+            await db.collection(COLLECTIONS.ACTIVE_RENTALS).doc(uid).delete();
 
             return { success: true, message: '¡Batería devuelta exitosamente!' };
         } else {
