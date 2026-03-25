@@ -400,7 +400,13 @@ export const withdrawFunds = functions.runWith({ timeoutSeconds: 60 }).https.onC
                 userRef.update({ walletBalance: admin.firestore.FieldValue.increment(withdrawAmount) }),
                 lockRef.update({ status: 'FAILED', reason: `P2C BNC: ${payoutRes.message}` })
             ]);
-            throw new functions.https.HttpsError('aborted', `Retiro Fallido: ${payoutRes.message}`);
+
+            let errorMsg = payoutRes.message;
+            if (errorMsg.includes('Tarjeta/Telf no Registrado') || errorMsg.includes('ECBG56000000')) {
+                errorMsg = 'El teléfono o cédula ingresado no está afiliado a Pago Móvil en el banco destino seleccionado. Verifica los datos.';
+            }
+
+            throw new functions.https.HttpsError('aborted', errorMsg);
         }
 
         // ── 4. Guardar transacción + marcar lock COMPLETED ───────────────────
