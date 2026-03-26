@@ -1,0 +1,115 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (NUNCA subir valores reales)
+.env
+.env.local
+.env.*.local
+functions/.env
+voltaje_v2_backend/.env
+
+# Build artifacts
+dist/
+build/
+apk/
+decompiled/
+functions/lib/
+voltaje_v2_backend/dist/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.g.dart
+
+# Android - Sensitive Config
+android/.gradle/
+android/local.properties
+android/gradle.properties
+android/captures/
+android/app/debug/
+android/app/release/
+android/app/google-services.json
+*.keystore
+*.jks
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Cashea docs
+casheaBtn/
+
+# iOS / macOS
+ios/Flutter/ephemeral/
+macos/Flutter/ephemeral/
+*.xcworkspace/xcuserdata/
+
+# Next.js
+.next/
+admin-panel/.next/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# macOS
+.DS_Store
+
+# Test scripts
+voltaje_v2_backend/scripts/
+get_sha.js
+sha_output.txt
+probe_*.py
+trigger_*.py
+verify_otp*.py
+
+# Cashea SDK investigation / debug scripts (root-level, no producción)
+cashea-axios-calls.txt
+cashea-context.txt
+extract-axios.js
+extract-cashea.js
+extract.js
+inspect-cashea.js
+mock-cashea.js
+mock-cashea2.js
+pdf_output.txt
+pdf_output_utf8.txt
+proxy-cashea.js
+read_pdf.js
+run-sdk.js
+test-endpoint.js
+urls.txt
+
+# Root-level package.json/lock generados por scripts de investigación SDK
+# (las dependencias reales están en functions/package.json)
+package.json
+package-lock.json
+
+# Functions test/debug scripts
+functions/test.js
+functions/test2.js
+functions/test3.js
+functions/test4.js
+
+# Temp / operational data
+cabinet_details.json
+station_details.json
+apps_full.json
+apps_list.json
+apps.txt
+f12SistemaBajie.md
+CLAUDE_DOCS_FOR_GEMINI.md
+firebase_config.json
+clean_sha.txt
+config_out.txt
+consideraciones_extracted.txt
+cursorSolution.md
+bitacora.md
+android/report.txt
+
+# Gemini AI / Agent
+.gemini/

@@ -1,0 +1,145 @@
+[
+  {
+    "test": "Order List (Confirmed)",
+    "status": 200,
+    "apiCode": 0,
+    "data": {
+      "msg": "Successful operation",
+      "code": 0,
+      "page": {
+        "records": [],
+        "total": 0,
+        "size": 10,
+        "current": 1,
+        "searchCount": true,
+        "pages": 0
+      }
+    }
+  },
+  {
+    "test": "Dict Revoke",
+    "status": 200,
+    "apiCode": 0,
+    "data": {
+      "msg": "Successful operation",
+      "code": 0,
+      "list": [
+        {
+          "id": "222389379054425",
+          "groupId": "222122957211620",
+          "name": "代理要求撤销",
+          "value": "代理要求撤销",
+          "sort": 1,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        },
+        {
+          "id": "222389395380612",
+          "groupId": "222122957211620",
+          "name": "电池故障",
+          "value": "电池故障",
+          "sort": 2,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        },
+        {
+          "id": "222389399890816",
+          "groupId": "222122957211620",
+          "name": "设备离线/异常",
+          "value": "设备离线/异常",
+          "sort": 3,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        },
+        {
+          "id": "222389411027749",
+          "groupId": "222122957211620",
+          "name": "未弹出充电宝",
+          "value": "未弹出充电宝",
+          "sort": 4,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        },
+        {
+          "id": "222389419469713",
+          "groupId": "222122957211620",
+          "name": "其他",
+          "value": "0",
+          "sort": 99,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        },
+        {
+          "id": "224160111598420",
+          "groupId": "222122957211620",
+          "name": "Author Bat fail",
+          "value": "Author Bat fail",
+          "sort": 10,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        },
+        {
+          "id": "224160113695399",
+          "groupId": "222122957211620",
+          "name": "time out",
+          "value": "time out",
+          "sort": 11,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        },
+        {
+          "id": "224160115909307",
+          "groupId": "222122957211620",
+          "name": "NO THIS ID",
+          "value": "NO THIS ID",
+          "sort": 12,
+          "status": 1,
+          "remark": "",
+          "code": "P_ORDER_REVOKE_TYPE"
+        }
+      ]
+    }
+  },
+  {
+    "test": "Shop List (Experimental Time Params)",
+    "status": 200,
+    "apiCode": 500,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "test": "Device List (Experimental Time Params)",
+    "status": 200,
+    "apiCode": 500,
+    "data": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "test": "Shop List (GET Variant)",
+    "status": 200,
+    "apiCode": 0,
+    "data": {
+      "msg": "Successful operation",
+      "code": 0,
+      "page": {
+        "records": [],
+        "total": 0,
+        "size": 10,
+        "current": 1,
+        "searchCount": true,
+        "pages": 0
+      }
+    }
+  }
+]
