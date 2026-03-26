@@ -1447,3 +1447,201 @@ export const paypalWebhook = functions.https.onRequest(async (req, res) => {
         res.status(200).json({ received: true, error: 'internal_error' });
     }
 });
+
+// ============================================================
+// DASHBOARD BNC - Consultas con datos cruzados de Firebase
+// ============================================================
+
+const bncPayment = new BncPaymentService();
+
+interface PaymentWithDetails {
+    transactionId?: string;
+    reference?: string;
+    amount: number;
+    type: string;
+    description?: string;
+    phone?: string;
+    bankCode?: number;
+    timestamp?: string;
+    userId?: string;
+    userPhone?: string;
+    userName?: string;
+    cabinetId?: string;
+    cabinetName?: string;
+    machineId?: string;
+    slotId?: number;
+    paymentMethod?: string;
+    status?: string;
+}
+
+async function enrichTransaction(tx: any): Promise<PaymentWithDetails | null> {
+    const payment: PaymentWithDetails = {
+        transactionId: tx.TransactionId || tx.Id || tx.Reference,
+        reference: tx.Reference || tx.OperationRef,
+        amount: parseFloat(tx.Amount || tx.amount || 0),
+        type: tx.Type || tx.PaymentType || 'OTHER',
+        description: tx.Description || tx.description,
+        phone: tx.ClientPhone || tx.CellPhone || tx.Phone,
+        bankCode: tx.BankCode || tx.BeneficiaryBankCode,
+        timestamp: tx.Date || tx.Timestamp || tx.OperationDate
+    };
+
+    if (payment.type === 'P2P' || payment.type === 'C2P') {
+        if (payment.phone) {
+            const normalizedPhone = payment.phone.replace(/[^0-9]/g, '');
+            const usersSnapshot = await db.collection(COLLECTIONS.USERS)
+                .where('phone', '==', normalizedPhone)
+                .limit(1)
+                .get();
+            
+            if (!usersSnapshot.empty) {
+                const userDoc = usersSnapshot.docs[0];
+                payment.userId = userDoc.id;
+                const userData = userDoc.data();
+                payment.userPhone = userData.phone;
+                payment.userName = userData.displayName || userData.name || userData.email;
+                
+                const rentalsSnapshot = await db.collection(COLLECTIONS.ACTIVE_RENTALS)
+                    .where('uid', '==', userDoc.id)
+                    .limit(1)
+                    .get();
+                
+                if (!rentalsSnapshot.empty) {
+                    const rentalData = rentalsSnapshot.docs[0].data();
+                    payment.cabinetId = rentalData.cabinetId;
+                    payment.machineId = rentalData.machineId;
+                    payment.slotId = rentalData.slotId;
+                }
+            }
+        }
+        payment.paymentMethod = 'PagoMovil';
+        payment.status = 'completed';
+    } else if (payment.type === 'TRF' || payment.type === 'DEP') {
+        payment.paymentMethod = payment.type === 'TRF' ? 'Transferencia' : 'Deposito';
+        payment.status = 'completed';
+    }
+
+    return payment;
+}
+
+// GET /api/dashboard/today-payments - Pagos de hoy
+export const dashboardTodayPayments = functions.https.onRequest(async (req, res) => {
+    try {
+        const today = new Date();
+        const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const endDate = startDate;
+
+        const logonRes = await bncPayment.logon();
+        if (!logonRes.success) {
+            return res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+        }
+
+        const result = await bncPayment.getTransactions({ startDate, endDate, pageSize: 100, pageNumber: 1 });
+
+        if (!result.success || !result.data) {
+            return res.json({ success: false, message: result.message });
+        }
+
+        const transactions = result.data.Transactions || result.data;
+        const paymentsWithDetails: PaymentWithDetails[] = [];
+
+        for (const tx of transactions) {
+            const payment = await enrichTransaction(tx);
+            if (payment) paymentsWithDetails.push(payment);
+        }
+
+        res.json({ success: true, data: paymentsWithDetails, count: paymentsWithDetails.length });
+    } catch (error: any) {
+        console.error('Error in dashboardTodayPayments:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// GET /api/dashboard/payments?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+export const dashboardPayments = functions.https.onRequest(async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: 'startDate and endDate are required (YYYY-MM-DD)' });
+        }
+
+        const logonRes = await bncPayment.logon();
+        if (!logonRes.success) {
+            return res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+        }
+
+        const result = await bncPayment.getTransactions({
+            startDate: startDate as string,
+            endDate: endDate as string,
+            pageSize: 100,
+            pageNumber: 1
+        });
+
+        if (!result.success || !result.data) {
+            return res.json({ success: false, message: result.message });
+        }
+
+        const transactions = result.data.Transactions || result.data;
+        const paymentsWithDetails: PaymentWithDetails[] = [];
+
+        for (const tx of transactions) {
+            const payment = await enrichTransaction(tx);
+            if (payment) paymentsWithDetails.push(payment);
+        }
+
+        res.json({ success: true, data: paymentsWithDetails, count: paymentsWithDetails.length });
+    } catch (error: any) {
+        console.error('Error in dashboardPayments:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// GET /api/dashboard/summary - Resumen: ingresos, egresos, transacciones, saldo
+export const dashboardSummary = functions.https.onRequest(async (req, res) => {
+    try {
+        const logonRes = await bncPayment.logon();
+        if (!logonRes.success) {
+            return res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+        }
+
+        const balanceResult = await bncPayment.getBalance();
+        const balance = balanceResult.success && balanceResult.data
+            ? parseFloat(balanceResult.data.AvailableBalance || balanceResult.data.Balance || 0)
+            : 0;
+
+        const today = new Date();
+        const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        const txResult = await bncPayment.getTransactions({ startDate, endDate: startDate, pageSize: 100, pageNumber: 1 });
+
+        let todayIncome = 0;
+        let todayExpenses = 0;
+
+        if (txResult.success && txResult.data) {
+            const transactions = txResult.data.Transactions || txResult.data;
+            for (const tx of transactions) {
+                const amount = parseFloat(tx.Amount || tx.amount || 0);
+                const type = tx.Type || tx.PaymentType || 'OTHER';
+                if (type === 'P2P' || type === 'C2P' || type === 'DEP') {
+                    todayIncome += amount;
+                } else if (type === 'TRF') {
+                    todayExpenses += amount;
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                todayIncome,
+                todayExpenses,
+                todayTransactions: (txResult.data?.Transactions || txResult.data || []).length,
+                balance
+            }
+        });
+    } catch (error: any) {
+        console.error('Error in dashboardSummary:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});

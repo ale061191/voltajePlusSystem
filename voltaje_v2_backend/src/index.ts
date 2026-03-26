@@ -4,12 +4,18 @@ import dotenv from 'dotenv';
 import { BajieService } from './services/bajie.service';
 import { BncPaymentService } from './services/bncPayment';
 import { orderStore } from './services/orderStore';
+import { initFirebase } from './services/firebaseService';
+import { DashboardService } from './services/dashboardService';
 
 dotenv.config();
+
+// Initialize Firebase
+initFirebase();
 
 // Instantiate Services AFTER dotenv
 const bncPayment = new BncPaymentService();
 const bajieService = new BajieService();
+const dashboardService = new DashboardService(bncPayment);
 
 const app = express();
 const PORT = process.env.PORT || 3006;
@@ -172,6 +178,68 @@ app.get('/api/bnc/webhook', (req: Request, res: Response) => {
 });
 
 // =============================================
+// BNC QUERY ENDPOINTS (Dashboard)
+// =============================================
+
+// Get Account Balance
+app.get('/api/bnc/balance', async (req: Request, res: Response) => {
+    const logonRes = await bncPayment.logon();
+    if (!logonRes.success) {
+        return res.status(500).json({ success: false, message: 'BNC Logon Failed', detail: logonRes.message });
+    }
+    const result = await bncPayment.getBalance();
+    res.json(result);
+});
+
+// Get Transaction History
+app.get('/api/bnc/transactions', async (req: Request, res: Response) => {
+    const { startDate, endDate, pageSize, pageNumber } = req.query;
+    
+    const logonRes = await bncPayment.logon();
+    if (!logonRes.success) {
+        return res.status(500).json({ success: false, message: 'BNC Logon Failed', detail: logonRes.message });
+    }
+    
+    const result = await bncPayment.getTransactions({
+        startDate: startDate as string,
+        endDate: endDate as string,
+        pageSize: pageSize ? parseInt(pageSize as string) : 50,
+        pageNumber: pageNumber ? parseInt(pageNumber as string) : 1
+    });
+    res.json(result);
+});
+
+// Get Transaction Detail
+app.get('/api/bnc/transaction/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    
+    const logonRes = await bncPayment.logon();
+    if (!logonRes.success) {
+        return res.status(500).json({ success: false, message: 'BNC Logon Failed', detail: logonRes.message });
+    }
+    
+    const result = await bncPayment.getTransactionDetail(id);
+    res.json(result);
+});
+
+// Validate P2P Payment
+app.post('/api/bnc/validate-p2p', async (req: Request, res: Response) => {
+    const { phone, amount, reference } = req.body;
+    
+    if (!phone || !amount || !reference) {
+        return res.status(400).json({ success: false, message: 'phone, amount, and reference are required' });
+    }
+    
+    const logonRes = await bncPayment.logon();
+    if (!logonRes.success) {
+        return res.status(500).json({ success: false, message: 'BNC Logon Failed', detail: logonRes.message });
+    }
+    
+    const result = await bncPayment.validateP2P({ phone, amount, reference });
+    res.json(result);
+});
+
+// =============================================
 // TEST-ONLY: Register pending order WITHOUT calling BNC
 // =============================================
 app.post('/api/test/register-rental', (req: Request, res: Response) => {
@@ -181,6 +249,37 @@ app.post('/api/test/register-rental', (req: Request, res: Response) => {
     }
     const order = orderStore.addPendingOrder(payerPhone, amount, machineId, slotId);
     res.json({ success: true, order });
+});
+
+// =============================================
+// DASHBOARD ENDPOINTS (BNC + Firebase Crossed Data)
+// =============================================
+
+// Get today's payments with crossed Firebase data
+app.get('/api/dashboard/today-payments', async (req: Request, res: Response) => {
+    const result = await dashboardService.getTodayPayments();
+    res.json(result);
+});
+
+// Get payments by date range
+app.get('/api/dashboard/payments', async (req: Request, res: Response) => {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+        return res.status(400).json({ success: false, message: 'startDate and endDate are required (YYYY-MM-DD)' });
+    }
+    
+    const result = await dashboardService.getPaymentsByDateRange(
+        startDate as string, 
+        endDate as string
+    );
+    res.json(result);
+});
+
+// Get dashboard summary (income, expenses, balance)
+app.get('/api/dashboard/summary', async (req: Request, res: Response) => {
+    const result = await dashboardService.getDashboardSummary();
+    res.json(result);
 });
 
 // =============================================

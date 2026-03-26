@@ -190,6 +190,110 @@ export class BncPaymentService {
     }
 
     /**
+     * Get account balance
+     */
+    async getBalance(): Promise<{ success: boolean; message: string; data?: any }> {
+        const crypto = this.getCrypto();
+        const reference = `BAL_${Date.now()}`;
+
+        const payload = {
+            AccountNumber: process.env.BNC_ACCOUNT_NUMBER || ''
+        };
+
+        const body = crypto.buildRequest(this.clientGUID, reference, payload, false);
+
+        try {
+            const res = await this.http.post('/BankAccount/GetBalance', body);
+            const parsed = crypto.parseResponse(res.data);
+            return { success: parsed.ok, message: parsed.message, data: parsed.data };
+        } catch (e: any) {
+            return { success: false, message: `GetBalance failed: ${e.message}` };
+        }
+    }
+
+    /**
+     * Get transaction history
+     */
+    async getTransactions(params: {
+        startDate: string;
+        endDate: string;
+        pageSize?: number;
+        pageNumber?: number;
+    }): Promise<{ success: boolean; message: string; data?: any }> {
+        const crypto = this.getCrypto();
+        const reference = `TXS_${Date.now()}`;
+
+        const payload = {
+            AccountNumber: process.env.BNC_ACCOUNT_NUMBER || '',
+            StartDate: params.startDate,
+            EndDate: params.endDate,
+            PageSize: params.pageSize || 50,
+            PageNumber: params.pageNumber || 1
+        };
+
+        const body = crypto.buildRequest(this.clientGUID, reference, payload, false);
+
+        try {
+            const res = await this.http.post('/BankAccount/GetTransactions', body);
+            const parsed = crypto.parseResponse(res.data);
+            return { success: parsed.ok, message: parsed.message, data: parsed.data };
+        } catch (e: any) {
+            return { success: false, message: `GetTransactions failed: ${e.message}` };
+        }
+    }
+
+    /**
+     * Get transaction detail
+     */
+    async getTransactionDetail(transactionId: string): Promise<{ success: boolean; message: string; data?: any }> {
+        const crypto = this.getCrypto();
+        const reference = `TXD_${Date.now()}`;
+
+        const payload = {
+            AccountNumber: process.env.BNC_ACCOUNT_NUMBER || '',
+            TransactionId: transactionId
+        };
+
+        const body = crypto.buildRequest(this.clientGUID, reference, payload, false);
+
+        try {
+            const res = await this.http.post('/BankAccount/GetTransactionDetail', body);
+            const parsed = crypto.parseResponse(res.data);
+            return { success: parsed.ok, message: parsed.message, data: parsed.data };
+        } catch (e: any) {
+            return { success: false, message: `GetTransactionDetail failed: ${e.message}` };
+        }
+    }
+
+    /**
+     * Validate if a P2P payment was received
+     */
+    async validateP2P(params: {
+        phone: string;
+        amount: number;
+        reference: string;
+    }): Promise<{ success: boolean; message: string; data?: any }> {
+        const crypto = this.getCrypto();
+        const reference = `VAL_${Date.now()}`;
+
+        const payload = {
+            CellPhone: params.phone,
+            Amount: params.amount,
+            OperationRef: params.reference
+        };
+
+        const body = crypto.buildRequest(this.clientGUID, reference, payload, false);
+
+        try {
+            const res = await this.http.post('/Position/ValidateP2P', body);
+            const parsed = crypto.parseResponse(res.data);
+            return { success: parsed.ok, message: parsed.message, data: parsed.data };
+        } catch (e: any) {
+            return { success: false, message: `ValidateP2P failed: ${e.message}` };
+        }
+    }
+
+    /**
      * Get status summary
      */
     getStatus(): object {
