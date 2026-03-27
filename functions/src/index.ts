@@ -384,6 +384,9 @@ export const withdrawFunds = functions.runWith({ timeoutSeconds: 60 }).https.onC
             throw new functions.https.HttpsError('internal', `Error Banco: ${logonRes.message}`);
         }
 
+        // Crear una referencia corta para el banco (máx ~20-30 caracteres)
+        const shortBncRef = `W${Date.now().toString().slice(-8)}${uid.substring(0, 4)}`;
+
         const payoutRes = await bncPayment.sendP2C({
             amount: withdrawAmount,
             beneficiaryBankCode: Number(bankCode),
@@ -391,7 +394,7 @@ export const withdrawFunds = functions.runWith({ timeoutSeconds: 60 }).https.onC
             beneficiaryID: personalId,
             beneficiaryName: beneficiaryName,
             description: description || 'Reintegro Voltaje',
-            operationRef: idempotencyKey
+            operationRef: shortBncRef
         });
 
         if (!payoutRes.success) {
@@ -1525,7 +1528,7 @@ async function enrichTransaction(tx: any): Promise<PaymentWithDetails | null> {
 }
 
 // GET /api/dashboard/today-payments - Pagos de hoy
-export const dashboardTodayPayments = functions.https.onRequest(async (req, res) => {
+export const dashboardTodayPayments = functions.https.onRequest(async (req, res): Promise<void> => {
     try {
         const today = new Date();
         const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -1533,13 +1536,15 @@ export const dashboardTodayPayments = functions.https.onRequest(async (req, res)
 
         const logonRes = await bncPayment.logon();
         if (!logonRes.success) {
-            return res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+            res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+            return;
         }
 
         const result = await bncPayment.getTransactions({ startDate, endDate, pageSize: 100, pageNumber: 1 });
 
         if (!result.success || !result.data) {
-            return res.json({ success: false, message: result.message });
+            res.json({ success: false, message: result.message });
+            return;
         }
 
         const transactions = result.data.Transactions || result.data;
@@ -1558,17 +1563,19 @@ export const dashboardTodayPayments = functions.https.onRequest(async (req, res)
 });
 
 // GET /api/dashboard/payments?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
-export const dashboardPayments = functions.https.onRequest(async (req, res) => {
+export const dashboardPayments = functions.https.onRequest(async (req, res): Promise<void> => {
     try {
         const { startDate, endDate } = req.query;
 
         if (!startDate || !endDate) {
-            return res.status(400).json({ success: false, message: 'startDate and endDate are required (YYYY-MM-DD)' });
+            res.status(400).json({ success: false, message: 'startDate and endDate are required (YYYY-MM-DD)' });
+            return;
         }
 
         const logonRes = await bncPayment.logon();
         if (!logonRes.success) {
-            return res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+            res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+            return;
         }
 
         const result = await bncPayment.getTransactions({
@@ -1579,7 +1586,8 @@ export const dashboardPayments = functions.https.onRequest(async (req, res) => {
         });
 
         if (!result.success || !result.data) {
-            return res.json({ success: false, message: result.message });
+            res.json({ success: false, message: result.message });
+            return;
         }
 
         const transactions = result.data.Transactions || result.data;
@@ -1598,11 +1606,12 @@ export const dashboardPayments = functions.https.onRequest(async (req, res) => {
 });
 
 // GET /api/dashboard/summary - Resumen: ingresos, egresos, transacciones, saldo
-export const dashboardSummary = functions.https.onRequest(async (req, res) => {
+export const dashboardSummary = functions.https.onRequest(async (req, res): Promise<void> => {
     try {
         const logonRes = await bncPayment.logon();
         if (!logonRes.success) {
-            return res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+            res.status(500).json({ success: false, message: 'BNC Logon Failed: ' + logonRes.message });
+            return;
         }
 
         const balanceResult = await bncPayment.getBalance();
@@ -1649,7 +1658,7 @@ export const dashboardSummary = functions.https.onRequest(async (req, res) => {
 // ============================================================
 // TEST BNC P2C (Withdrawal/Reimbursement)
 // ============================================================
-export const testBNCReimbursement = functions.https.onRequest(async (req, res) => {
+export const testBNCReimbursement = functions.https.onRequest(async (req, res): Promise<void> => {
     try {
         const bncPayment = new BncPaymentService();
         
@@ -1658,27 +1667,28 @@ export const testBNCReimbursement = functions.https.onRequest(async (req, res) =
         // 1. Logon
         const logonRes = await bncPayment.logon();
         if (!logonRes.success) {
-            return res.status(200).json({
+            res.status(200).json({
                 success: false,
                 step: 'logon',
                 message: logonRes.message
             });
+            return;
         }
         
-        // 2. Send P2C (test with $1)
+        // 2. Send P2C (test with $1 to BDV)
         const payoutRes = await bncPayment.sendP2C({
             amount: 1,
-            beneficiaryBankCode: 191,
-            beneficiaryCellPhone: '04163750325',
-            beneficiaryID: 'V12345678',
-            beneficiaryName: 'TEST USER',
+            beneficiaryBankCode: 102, // Banco de Venezuela
+            beneficiaryCellPhone: '04129850722', // User's phone to receive
+            beneficiaryID: 'V19932878',
+            beneficiaryName: 'Luis Perez',
             description: 'Test reimbursement',
             operationRef: `TEST_${Date.now()}`
         });
         
         console.log('📋 P2C Result:', payoutRes);
         
-        return res.status(200).json({
+        res.status(200).json({
             success: payoutRes.success,
             step: 'p2c',
             message: payoutRes.message,
@@ -1687,9 +1697,66 @@ export const testBNCReimbursement = functions.https.onRequest(async (req, res) =
         
     } catch (error: any) {
         console.error('❌ Error in testBNCReimbursement:', error);
-        return res.status(200).json({
+        res.status(200).json({
             success: false,
             message: error.message
         });
+    }
+});
+
+// TEST P2P with phone 04127866892
+export const testP2PBancoVenezuela = functions.https.onRequest(async (req, res): Promise<void> => {
+    try {
+        const bnc = new BncPaymentService();
+        
+        const logon = await bnc.logon();
+        if (!logon.success) {
+            res.json({ success: false, step: 'logon', message: logon.message });
+            return;
+        }
+        
+        const payout = await bnc.sendP2C({
+            amount: 1,
+            beneficiaryBankCode: 102,
+            beneficiaryCellPhone: '04129850722',
+            beneficiaryID: 'V19932878',
+            beneficiaryName: 'Luis Perez',
+            description: 'Test P2P',
+            operationRef: 'TEST_' + Date.now().toString().slice(-8)
+        });
+        
+        res.json({
+            success: payout.success,
+            step: 'p2p',
+            message: payout.message,
+            data: payout.data
+        });
+    } catch (e: any) {
+        res.json({ success: false, error: e.message });
+    }
+});
+
+export const testBNCParametrized = functions.https.onRequest(async (req, res): Promise<void> => {
+    try {
+        const bncPayment = new BncPaymentService();
+        const logonRes = await bncPayment.logon();
+        if (!logonRes.success) {
+            res.status(200).json({ success: false, step: 'logon', message: logonRes.message });
+            return;
+        }
+        
+        const payoutRes = await bncPayment.sendP2C({
+            amount: Number(req.query.amount) || 1,
+            beneficiaryBankCode: (req.query.bank as string) || "0102",
+            beneficiaryCellPhone: (req.query.phone as string) || '04129850722',
+            beneficiaryID: (req.query.id as string) || 'V19932878',
+            beneficiaryName: (req.query.name as string) ?? 'Luis Perez',
+            description: (req.query.desc as string) ?? 'Test reimbursement',
+            operationRef: (req.query.ref as string) || `TEST_${Date.now()}`
+        });
+        
+        res.status(200).json(payoutRes);
+    } catch (e: any) {
+        res.status(200).json({ success: false, error: e.message });
     }
 });

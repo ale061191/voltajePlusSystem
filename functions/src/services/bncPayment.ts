@@ -110,7 +110,7 @@ export class BncPaymentService {
      */
     async collectC2P(params: {
         amount: number;
-        payerBankCode: number;
+        payerBankCode: number | string;
         payerCellPhone: string;
         payerID: string;
         payerToken: string; // Terna/OTP/Clave
@@ -120,9 +120,11 @@ export class BncPaymentService {
         const crypto = this.getCrypto();
         const reference = `C2P_${params.operationRef}`;
 
+        const paddedBankCode = params.payerBankCode.toString().padStart(4, '0');
+
         const payload = {
             Amount: params.amount,
-            PayerBankCode: params.payerBankCode,
+            PayerBankCode: paddedBankCode,
             PayerCellPhone: params.payerCellPhone,
             PayerID: params.payerID,
             PayerToken: params.payerToken,
@@ -164,7 +166,7 @@ export class BncPaymentService {
      */
     async sendP2C(params: {
         amount: number;
-        beneficiaryBankCode: number;
+        beneficiaryBankCode: number | string;
         beneficiaryCellPhone: string;
         beneficiaryID: string;
         beneficiaryName: string;
@@ -184,11 +186,14 @@ export class BncPaymentService {
         const idPrefix = rawId.match(/^[VJEPG]/i) ? rawId.charAt(0).toUpperCase() : 'V';
         const normalizedId = `${idPrefix}${idDigits}`;
 
-        console.log(`💸 P2C: phone=${normalizedPhone}, id=${normalizedId}, bank=${params.beneficiaryBankCode}`);
+        // Fallback to sending Number to match original behavior exactly
+        const bankCodeNum = Number(params.beneficiaryBankCode);
+
+        console.log(`💸 P2C: phone=${normalizedPhone}, id=${normalizedId}, bank=${bankCodeNum}`);
 
         const payload = {
             Amount: params.amount,
-            BeneficiaryBankCode: params.beneficiaryBankCode,
+            BeneficiaryBankCode: bankCodeNum,
             BeneficiaryCellPhone: normalizedPhone,
             BeneficiaryID: normalizedId,
             BeneficiaryName: params.beneficiaryName,
@@ -234,7 +239,7 @@ export class BncPaymentService {
      */
     async validateP2P(params: {
         accountNumber: string;
-        bankCode: number;
+        bankCode: number | string;
         phoneNumber: string;
         clientID: string;
         reference: string;
@@ -248,10 +253,10 @@ export class BncPaymentService {
         const normalizedPhone = phone.startsWith('58') ? phone
             : phone.startsWith('0') ? `58${phone.slice(1)}`
             : `58${phone}`;
-
+            
         const payload = {
             AccountNumber: params.accountNumber || CONFIG.BNC_ACCOUNT_NUMBER,
-            BankCode: params.bankCode,
+            BankCode: Number(params.bankCode),
             PhoneNumber: normalizedPhone,
             ClientID: params.clientID || CONFIG.BNC_CLIENT_ID,
             Reference: params.reference,
@@ -394,34 +399,6 @@ export class BncPaymentService {
             return { success: parsed.ok, message: parsed.message, data: parsed.data };
         } catch (e: any) {
             return { success: false, message: `GetTransactionDetail failed: ${e.message}` };
-        }
-    }
-
-    /**
-     * Validate if a P2P payment was received
-     */
-    async validateP2P(params: {
-        phone: string;
-        amount: number;
-        reference: string;
-    }): Promise<{ success: boolean; message: string; data?: any }> {
-        const crypto = this.getCrypto();
-        const reference = `VAL_${Date.now()}`;
-
-        const payload = {
-            CellPhone: params.phone,
-            Amount: params.amount,
-            OperationRef: params.reference
-        };
-
-        const body = crypto.buildRequest(this.clientGUID, reference, payload, false);
-
-        try {
-            const res = await this.http.post('/Position/ValidateP2P', body);
-            const parsed = crypto.parseResponse(res.data);
-            return { success: parsed.ok, message: parsed.message, data: parsed.data };
-        } catch (e: any) {
-            return { success: false, message: `ValidateP2P failed: ${e.message}` };
         }
     }
 
