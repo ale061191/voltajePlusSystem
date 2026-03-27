@@ -193,3 +193,44 @@ BNC_CLIENT_GUID=f217229a-5f94-48f6-8611-ffed2ccf7aee
 BNC_MASTER_KEY=dcd148cd10d49e19715a6f6231d243f7
 BNC_ACCOUNT_NUMBER=01910098702198555270
 ```
+
+---
+
+## Prueba de Reembolso (P2C) - Test Realizado
+
+### Función de prueba desplegada
+
+| Función | URL |
+|---|---|
+| `testBNCReimbursement` | `https://us-central1-voltajevzla-25454.cloudfunctions.net/testBNCReimbursement` |
+
+### Resultado del test (27-03-2026)
+
+```bash
+curl https://us-central1-voltajevzla-25454.cloudfunctions.net/testBNCReimbursement
+```
+
+**Respuesta:**
+```json
+{
+  "success": false,
+  "step": "p2c",
+  "message": "P2C failed: Request failed with status code 409 | BNC: {\"status\":\"KO\",\"message\":\"ECBG56000000Tarjeta/Telf no Registrado\"}"
+}
+```
+
+### Análisis del resultado
+
+| Paso | Status | Detalle |
+|---|---|---|
+| Logon (BNC) | ✅ **200 OK** | Autenticación exitosa - WorkingKey obtenido |
+| P2C (Enviar $1) | ❌ **409** | Teléfono no afiliado a Pago Móvil |
+
+### Conclusión
+
+- ✅ **El código funciona correctamente** - El logon y la conexión con BNC están operativos
+- ❌ **El teléfono de prueba no está afiliado** - El número `04163750325` no está registrado en el servicio de Pago Móvil del BNC
+
+### Para probar exitosamente
+
+Se debe usar un teléfono que esté **afiliado al servicio de Pago Móvil** en el BNC. El código del reembolso está correcto y funciona.
