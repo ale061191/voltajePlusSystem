@@ -1645,3 +1645,51 @@ export const dashboardSummary = functions.https.onRequest(async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 });
+
+// ============================================================
+// TEST BNC P2C (Withdrawal/Reimbursement)
+// ============================================================
+export const testBNCReimbursement = functions.https.onRequest(async (req, res) => {
+    try {
+        const bncPayment = new BncPaymentService();
+        
+        console.log('🧪 Testing BNC P2C (Reimbursement)...');
+        
+        // 1. Logon
+        const logonRes = await bncPayment.logon();
+        if (!logonRes.success) {
+            return res.status(200).json({
+                success: false,
+                step: 'logon',
+                message: logonRes.message
+            });
+        }
+        
+        // 2. Send P2C (test with $1)
+        const payoutRes = await bncPayment.sendP2C({
+            amount: 1,
+            beneficiaryBankCode: 191,
+            beneficiaryCellPhone: '04163750325',
+            beneficiaryID: 'V12345678',
+            beneficiaryName: 'TEST USER',
+            description: 'Test reimbursement',
+            operationRef: `TEST_${Date.now()}`
+        });
+        
+        console.log('📋 P2C Result:', payoutRes);
+        
+        return res.status(200).json({
+            success: payoutRes.success,
+            step: 'p2c',
+            message: payoutRes.message,
+            data: payoutRes.data
+        });
+        
+    } catch (error: any) {
+        console.error('❌ Error in testBNCReimbursement:', error);
+        return res.status(200).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
