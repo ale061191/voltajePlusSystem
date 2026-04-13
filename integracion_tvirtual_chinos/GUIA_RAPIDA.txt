@@ -1,0 +1,153 @@
+// ============================================================
+// 📋 GUÍA RÁPIDA - T-VIRTUAL INTEGRATION (VERSIÓN SIMPLE)
+// ============================================================
+//
+// Este archivo es para los chinos que tienen su propia app Flutter
+// y quieren integrar T-Virtual para crear clientes y facturar.
+//
+// ============================================================
+// OPCIÓN A: SI USAS FLUTTER DIRECTO (SIN FIREBASE)
+// Copia tvirtual_simple_all_in_one.dart a tu proyecto
+// ============================================================
+//
+// PASOS:
+// 1. Añade esta dependencia en tu pubspec.yaml:
+//    dependencies:
+//      http: ^1.0.0
+//
+// 2. Copia el archivo tvirtual_simple_all_in_one.dart a tu proyecto
+//
+// 3. Cuando el usuario se registre, llama:
+//    await crearClienteEnTVirtual(
+//      cedula: "12345678",
+//      nombre: "Juan Pérez",
+//      telefono: "04121234567",
+//      email: "juan@email.com",
+//      direccion: "Caracas",
+//    );
+//
+// 4. Listo! El cliente se crea automáticamente en T-Virtual
+//
+// ============================================================
+// OPCIÓN B: SI USAS FIREBASE CLOUD FUNCTIONS
+// Copia las funciones de abajo a tu Firebase
+// ============================================================
+//
+//
+// ==== FIREBASE CLOUD FUNCTION 1: CREAR CLIENTE ====
+// functions/index.js
+//
+// exports.crearClienteTVirtual = functions.https.onCall(async (data, context) => {
+//   const { cedula, nombre, telefono, email, direccion } = data;
+//
+//   // 1. Guardar en Firestore
+//   await db.collection('usuarios').doc(cedula).set({
+//     cedula, nombre, telefono, email, direccion,
+//     createdAt: admin.firestore.FieldValue.serverTimestamp()
+//   });
+//
+//   // 2. Crear en T-Virtual
+//   const response = await axios.post(
+//     'https://qa.tvirtual.net/api/prov-clientes/cargar',
+//     {
+//       indicacliente: 1,
+//       inditipoente: "NN",
+//       especial: 0,
+//       indicedrif: "C",
+//       cedrif: cedula,
+//       nombre: nombre,
+//       email: email,
+//       telefono: telefono,
+//       direccion: direccion || "Venezuela",
+//       diascredito: 0,
+//       ivaidtarifadetalle: 15
+//     },
+//     {
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': 'Bearer TU_TOKEN'
+//       }
+//     }
+//   );
+//
+//   return { success: true, data: response.data };
+// });
+//
+//
+// ==== FIREBASE CLOUD FUNCTION 2: GENERAR FACTURA ====
+// exports.generarFacturaTVirtual = functions.https.onCall(async (data, context) => {
+//   const { cedula, monto, observaciones } = data;
+//
+//   const response = await axios.post(
+//     'https://qa.tvirtual.net/api/facturacion-digital/cargar',
+//     {
+//       serie: "",
+//       moneda: "VES",
+//       tasa_cambio: 1,
+//       rif_cliente: cedula,
+//       observaciones: observaciones,
+//       almacen: "ALMACEN DE EQUIPOS ALQUILADOS",
+//       vendedor: "V0000001",
+//       detalles: [{
+//         codigo: "DTN02901",
+//         cantidad: 1,
+//         presentacion: 1,
+//         precio_unit: monto,
+//         lote: "",
+//         descuento_monto: 0,
+//         tasa_cambio: 1,
+//         rif_tercero: ""
+//       }],
+//       cobros: [{
+//         moneda: "VES",
+//         monto: monto,
+//         tasa_cambio: 1,
+//         cuenta_asociada: "1112001",
+//         referencia: `RENTAL-${Date.now()}`
+//       }]
+//     },
+//     {
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': 'Bearer TU_TOKEN'
+//       }
+//     }
+//   );
+//
+//   return response.data;
+// });
+//
+// ============================================================
+// VARIABLES DE ENTORNO (.env)
+// ============================================================
+//
+// TVIRTUAL_API_URL=https://qa.tvirtual.net/api/facturacion-digital/cargar
+// TVIRTUAL_CLIENTE_API_URL=https://qa.tvirtual.net/api/prov-clientes/cargar
+// TVIRTUAL_API_TOKEN=eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV
+// TVIRTUAL_ALMACEN=ALMACEN DE EQUIPOS ALQUILADOS
+// TVIRTUAL_VENDEDOR=V0000001
+// TVIRTUAL_CUENTA_CONTABLE=1112001
+// TVIRTUAL_MONEDA=VES
+//
+// ============================================================
+// RESUMEN: QUÉ HACER
+// ============================================================
+//
+// [PARA LOS CHINOS]
+//
+// Opción 1 - Si tienes Flutter directo (sin Firebase):
+//   → Copia tvirtual_simple_all_in_one.dart
+//   → Añade dependencia: http: ^1.0.0
+//   → Listo!
+//
+// Opción 2 - Si usas Firebase:
+//   → Copia las Cloud Functions de arriba
+//   → Configura las variables de entorno
+//   → Listo!
+//
+// Lo único que deben cambiar es el TOKEN cuando pasen a producción.
+//
+// ============================================================
+// TOKEN DE PRUEBA (QA):
+// eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV
+// ============================================================
