@@ -1,0 +1,62 @@
+# Dependencies
+**/node_modules/
+**/package-lock.json
+
+# Environment variables
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# Logs
+**/*.log
+**/npm-debug.log*
+logs.txt
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+**/dist/
+**/build/
+**/out/
+
+# APK decompilation / Extra large files
+extraApp/
+apk/
+flutter.zip
+integracion_tvirtual_chinos.zip
+voltajePlusSystem-main/
+
+# Large files, binaries and temp
+*.pdf
+nul
+test-name.ts
+
+# Documentation
+codigoApp.md
+informe_integraciones.md
+tvirtual_guia_aliados.md
+tvirtual_manual_text.txt
+tvirtual_clientes_manual.txt
+
+# Integration files
+integracion_chinos_firebase_tvirtual.md
+integracion_chinos_firebase_tvirtual.txt
+plan_integracion_cliente.md
+plan_integracion_cliente.txt
+
+# Extract scripts
+extract*.py
+invoice_test.txt
+
+# Functions and config
+functions_list.json

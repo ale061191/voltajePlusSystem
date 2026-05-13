@@ -1,0 +1,82 @@
+
+
+Guía de Integración para Notificaciones Push – BNC
+
+DESARROLLO
+
+PRODUCCIÓN
+
+URL DE NOTIFICACIÓN:
+
+URL DE AUTENTICACIÓN:
+
+URL DE NOTIFICACIÓN:
+
+TOKEN: parámetro enviado por Header, nombre de la variable: Authorization
+
+VALOR: Bearer 
+
+DATA: Método POST,
+
+BODY:     {
+
+							Login:                                                                   ,
+
+							Password:
+
+					}
+
+Respuesta:   la respuesta del token debe ser un string plano, Ej: "Xasdfsdgf7jadfsdffssf45FtysR65l" 
+
+APIKEY: Método POST, parámetro por Header, nombre de la variable x-api-key
+
+ 
+
+VALOR: 
+
+CONECTAR CON APIKEY
+
+CONECTAR CON JWT
+
+URL DE NOTIFICACIÓN:
+
+URL DE AUTENTICACIÓN:
+
+URL DE NOTIFICACIÓN:
+
+TOKEN: parámetro enviado por Header, nombre de la variable: Authorization
+
+VALOR: Bearer 
+
+DATA: Método POST,
+
+BODY:     {
+
+							Login:                                                                   ,
+
+							Password:
+
+					}
+
+Respuesta:   la respuesta del token debe ser un string plano, Ej: "Xasdfsdgf7jadfsdffssf45FtysR65l" 
+
+APIKEY: Método POST, parámetro por Header, nombre de la variable x-api-key
+
+ 
+
+VALOR: 
+
+CONECTAR CON APIKEY
+
+CONECTAR CON JWT
+
+NOMBRE DE LA EMPRESA:
+
+R.I.F: 
+
+Documentación:https://documenter.getpostman.com/view/48256705/2sB3QDuCXT
+Formulario de Configuración de SNP
+Correo Electrónico
+
+N° de cuentaN° de TeléfonoTipo de Moneda
+Ej. 584249568953

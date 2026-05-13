@@ -1,0 +1,181 @@
+[
+  {
+    "probe": {
+      "category": "USER",
+      "method": "GET",
+      "path": "/sys/user/info",
+      "desc": "User Info"
+    },
+    "status": 200,
+    "apiCode": 0,
+    "success": true,
+    "dataSample": "{\"msg\":\"Successful operation\",\"code\":0,\"user\":{\"dailiUser\":\"admins\",\"dailiName\":\"admins\",\"roleNameList\":[\"平台\"],\"currencyName\":\"Bs.\",\"mmxTc\":100,\"currency\":\"VES\",\"email\":\"\",\"realDailiId\":\"BJCD000001\",\"..."
+  },
+  {
+    "probe": {
+      "category": "USER",
+      "method": "GET",
+      "path": "/sys/menu/user",
+      "desc": "User Menu"
+    },
+    "status": 200,
+    "apiCode": 404,
+    "success": false,
+    "dataSample": {
+      "msg": "Incorrect access path",
+      "code": 404
+    }
+  },
+  {
+    "probe": {
+      "category": "USER",
+      "method": "GET",
+      "path": "/cdb/wallet/balance",
+      "desc": "Wallet Balance"
+    },
+    "status": 200,
+    "apiCode": 404,
+    "success": false,
+    "dataSample": {
+      "msg": "Incorrect access path",
+      "code": 404
+    }
+  },
+  {
+    "probe": {
+      "category": "SHOP",
+      "method": "GET",
+      "path": "/shop/getAllShopList",
+      "desc": "All Shops"
+    },
+    "status": 200,
+    "apiCode": 404,
+    "success": false,
+    "dataSample": {
+      "msg": "Incorrect access path",
+      "code": 404
+    }
+  },
+  {
+    "probe": {
+      "category": "SHOP",
+      "method": "POST",
+      "path": "/shop/list",
+      "payload": {
+        "page": 1,
+        "limit": 10
+      },
+      "desc": "Shop List Paged"
+    },
+    "status": 200,
+    "apiCode": 404,
+    "success": false,
+    "dataSample": {
+      "msg": "Incorrect access path",
+      "code": 404
+    }
+  },
+  {
+    "probe": {
+      "category": "SHOP",
+      "method": "POST",
+      "path": "/cdb/shop/list",
+      "payload": {
+        "page": 1,
+        "limit": 10
+      },
+      "desc": "CDB Shop List"
+    },
+    "status": 200,
+    "apiCode": 500,
+    "success": false,
+    "dataSample": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "probe": {
+      "category": "DEVICE",
+      "method": "GET",
+      "path": "/cabinet/getAllDevicePage?page=1&limit=10",
+      "desc": "All Devices"
+    },
+    "status": 200,
+    "apiCode": 404,
+    "success": false,
+    "dataSample": {
+      "msg": "Incorrect access path",
+      "code": 404
+    }
+  },
+  {
+    "probe": {
+      "category": "DEVICE",
+      "method": "POST",
+      "path": "/cdb/cabinet/list",
+      "payload": {},
+      "desc": "CDB Device List"
+    },
+    "status": 200,
+    "apiCode": 500,
+    "success": false,
+    "dataSample": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "probe": {
+      "category": "ORDER",
+      "method": "POST",
+      "path": "/rent/order/list",
+      "payload": {
+        "page": 1,
+        "limit": 10
+      },
+      "desc": "Rent Orders"
+    },
+    "status": 200,
+    "apiCode": 404,
+    "success": false,
+    "dataSample": {
+      "msg": "Incorrect access path",
+      "code": 404
+    }
+  },
+  {
+    "probe": {
+      "category": "ORDER",
+      "method": "POST",
+      "path": "/cdb/order/list",
+      "payload": {
+        "page": 1,
+        "limit": 10
+      },
+      "desc": "CDB Orders"
+    },
+    "status": 200,
+    "apiCode": 500,
+    "success": false,
+    "dataSample": {
+      "msg": "Server internal error",
+      "code": 500
+    }
+  },
+  {
+    "probe": {
+      "category": "ORDER",
+      "method": "GET",
+      "path": "/order/list",
+      "desc": "Simple Order List"
+    },
+    "status": 200,
+    "apiCode": 404,
+    "success": false,
+    "dataSample": {
+      "msg": "Incorrect access path",
+      "code": 404
+    }
+  }
+]

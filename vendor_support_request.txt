@@ -1,0 +1,21 @@
+
+Subject: Urgent: API Permission Error 1007 - Request to Bind Devices to 'open' User
+
+Dear Support Team,
+
+I am integrating the Open API (https://m.voltajevzla.com/cdb-open-api/v1) for my extensive fleet of machines.
+
+Current Setup:
+- API User: open
+- Admin Account: admins
+- Test Device: DTA34039 (Bound to 'admins')
+
+Issue:
+When querying device DTA34039 with the 'open' user credentials, the API returns Error 1007: "The current user has no operation permission".
+
+Request:
+Please configure the 'open' API user to have full access/permissions to ALL devices (current and future) bound to the 'admins' account. I need to manage my entire fleet via the Open API immediately.
+
+Please confirm when this binding is complete.
+
+Thank you.

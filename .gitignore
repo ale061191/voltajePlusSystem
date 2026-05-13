@@ -1,0 +1,59 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.metadata
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VSCode related
+.vscode/
+
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub/
+build/
+*.g.dart
+*.freezed.dart
+
+# Node
+node_modules/
+
+# Flutter web
+web/.firebase/
+web/firebase-debug.log
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+*.apk
+*.aab
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# GitNexus
+.gitnexus/
+
+# GSD
+.planning/
+
+# Environment
+.env
+.env.local
