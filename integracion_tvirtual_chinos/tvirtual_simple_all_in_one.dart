@@ -27,12 +27,18 @@ class TVirtualConfig {
       'https://qa.tvirtual.net/api/prov-clientes/cargar';
   static const String urlFactura =
       'https://qa.tvirtual.net/api/facturacion-digital/cargar';
+  static const String urlAnticipo =
+      'https://qa.tvirtual.net/api/cxc/registrar-anticipos';
 
   // Datos para factura (iguales para todos)
   static const String almacen = 'ALMACEN DE EQUIPOS ALQUILADOS';
   static const String vendedor = 'V0000001';
   static const String cuentaContable = '1112001';
   static const String codigoServicio = 'DTN02901'; // Power Bank Rental
+
+  // Datos para anticipo / 预付款数据
+  static const String clasificacionAnticipo =
+      'Anticipos Recibidos de los Clientes';
 }
 
 // ============================================================
@@ -119,6 +125,51 @@ Future<Map<String, dynamic>> generarFacturaEnTVirtual({
                 referencia ?? 'RENTAL-${DateTime.now().millisecondsSinceEpoch}',
           },
         ],
+      }),
+    );
+
+    return jsonDecode(response.body);
+  } catch (e) {
+    return {'error': true, 'mensaje': e.toString()};
+  }
+}
+
+// 3. Registrar anticipo de cliente en T-Virtual / 客户预付款
+Future<Map<String, dynamic>> registrarAnticipoEnTVirtual({
+  required String cedulaCliente,
+  required double monto,
+  required String referencia,
+  String cuentaBanco = '1112001',
+  String fecha = '',
+  String concepto = 'Anticipo de cliente',
+  double tasa = 1,
+}) async {
+  try {
+    if (fecha.isEmpty) {
+      final now = DateTime.now();
+      fecha =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    }
+
+    final response = await http.post(
+      Uri.parse(TVirtualConfig.urlAnticipo),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${TVirtualConfig.token}',
+      },
+      body: jsonEncode({
+        'cliente': cedulaCliente, // RIF del cliente
+        'cuenta_contable': cuentaBanco, // Cuenta de banco/caja
+        'monto': monto, // Monto del anticipo
+        'numero': referencia.length <= 10
+            ? referencia
+            : referencia.substring(0, 10), // Máx 10 dígitos
+        'fecha': fecha, // YYYY-MM-DD
+        'clasificacion': TVirtualConfig.clasificacionAnticipo,
+        'concepto': concepto.length <= 100
+            ? concepto
+            : concepto.substring(0, 100), // Máx 100 caracteres
+        'tasa': tasa, // 1 = Bs, o tasa BCV para USD
       }),
     );
 
