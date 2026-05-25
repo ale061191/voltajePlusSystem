@@ -137,12 +137,13 @@
 // TVIRTUAL_API_URL=https://qa.tvirtual.net/api/facturacion-digital/cargar
 // TVIRTUAL_CLIENTE_API_URL=https://qa.tvirtual.net/api/prov-clientes/cargar
 // TVIRTUAL_ANTICIPO_API_URL=https://qa.tvirtual.net/api/cxc/registrar-anticipos
-// TVIRTUAL_API_TOKEN=eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV
-// TVIRTUAL_ALMACEN=ALMACEN DE EQUIPOS ALQUILADOS
+// TVIRTUAL_API_TOKEN=3fC7a2rSBB8qTcY6b9jptUurfjly0LIFPfHcfxNPj3zrezTM
+// TVIRTUAL_ALMACEN=VOLTAJE
 // TVIRTUAL_VENDEDOR=V0000001
 // TVIRTUAL_CUENTA_CONTABLE=1112001
-// TVIRTUAL_CUENTA_BANCO=1111004
-// TVIRTUAL_CLASIFICACION_ANTICIPO=Anticipos Recibidos de los Clientes
+// TVIRTUAL_CUENTA_BANCO_QA=1112001
+// TVIRTUAL_CUENTA_BANCO_PROD=1111004
+// TVIRTUAL_CLASIFICACION_ANTICIPO=anticipo de clientes
 // TVIRTUAL_MONEDA=VES
 //
 // ============================================================
@@ -164,6 +165,9 @@
 // Lo único que deben cambiar es el TOKEN cuando pasen a producción.
 //
 // ============================================================
-// TOKEN DE PRUEBA (QA):
-// eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV
+// TOKEN DE PRUEBA (QA y PROD usan el mismo):
+// 3fC7a2rSBB8qTcY6b9jptUurfjly0LIFPfHcfxNPj3zrezTM
+//
+// ⚠️ Mismo token para QA y PRODUCCIÓN
+// ⚠️ 测试环境和生产环境使用相同令牌
 // ============================================================

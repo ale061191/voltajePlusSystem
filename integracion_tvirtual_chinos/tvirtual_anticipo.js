@@ -25,16 +25,16 @@ const fetch = require('node-fetch'); // npm install node-fetch@2
 const CONFIG = {
   QA: {
     URL: 'https://qa.tvirtual.net/api/cxc/registrar-anticipos',
-    TOKEN: 'eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV',
+    TOKEN: '3fC7a2rSBB8qTcY6b9jptUurfjly0LIFPfHcfxNPj3zrezTM',
     // Clasificación debe existir en T-Virtual:
     // Bancos > Maestros > Clasificacion de Flujo de Caja
     // 分类必须在 T-Virtual 中存在
-    CLASIFICACION: 'Anticipos Recibidos de los Clientes',
+    CLASIFICACION: 'anticipo de clientes',
   },
   PROD: {
     URL: 'https://sav.tvirtual.net/api/cxc/registrar-anticipos',
     TOKEN: '3fC7a2rSBB8qTcY6b9jptUurfjly0LIFPfHcfxNPj3zrezTM',
-    CLASIFICACION: 'Anticipos Recibidos de los Clientes',
+    CLASIFICACION: 'anticipo de clientes',
   }
 };
 
@@ -205,11 +205,21 @@ async function ejemploDepositoGarantia() {
 // cuentas de banco/caja:
 // 这些科目必须在T-Virtual中配置为银行/现金科目:
 //
-//   1111004 - Banco Provincial
-//   1112001 - Banco Mercantil
+//   1111004 - Banco Provincial (PROD)
+//   1112001 - Banco Mercantil (QA ✅)
 //   1113001 - Banco Venezuela
 //   1101001 - Caja Principal
 //   1131001 - Efectivo
+//
+// ⚠️ En QA solo 1112001 funciona como cuenta bancaria
+// ⚠️ 在QA环境中只有1112001可以作为银行账户使用
+// ⚠️ En PROD se debe usar 1111004
+// ⚠️ 在生产环境中应使用1111004
+//
+// ⚠️ QA tiene períodos contables cerrados para 2026
+// ⚠️ QA环境的2026会计期间已关闭
+//    Solicitar a Unidigital que abra el período en QA
+//    请向Unidigital请求在QA中打开会计期间
 //
 // Pregunta a T-Virtual qué cuentas de banco tienen disponibles
 // 请询问T-Virtual有哪些银行科目可用

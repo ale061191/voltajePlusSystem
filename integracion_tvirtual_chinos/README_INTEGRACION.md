@@ -279,8 +279,8 @@ exports.generateInvoice = functions.https.onCall(async (data, context) => {
 # T-Virtual Configuration
 TVIRTUAL_API_URL=https://qa.tvirtual.net/api/facturacion-digital/cargar
 TVIRTUAL_CLIENTE_API_URL=https://qa.tvirtual.net/api/prov-clientes/cargar
-TVIRTUAL_API_TOKEN=your_token_here
-TVIRTUAL_ALMACEN=ALMACEN DE EQUIPOS ALQUILADOS
+TVIRTUAL_API_TOKEN=3fC7a2rSBB8qTcY6b9jptUurfjly0LIFPfHcfxNPj3zrezTM
+TVIRTUAL_ALMACEN=VOLTAJE
 TVIRTUAL_VENDEDOR=V0000001
 TVIRTUAL_CUENTA_CONTABLE=1112001
 TVIRTUAL_MONEDA=VES
@@ -290,9 +290,11 @@ TVIRTUAL_MONEDA=VES
 
 ## Testing
 
-1. Use token: `eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV`
+1. Token: `3fC7a2rSBB8qTcY6b9jptUurfjly0LIFPfHcfxNPj3zrezTM` (same for QA and PROD)
 2. Test URL: `https://qa.tvirtual.net/`
-3. Both APIs work in QA environment
+3. Account for QA: `1112001` / Account for PROD: `1111004`
+4. Classification: `"anticipo de clientes"` (confirmed in T-Virtual panel)
+5. ⚠️ QA has all 2026 fiscal periods closed — request Unidigital to open them
 
 ---
 
@@ -317,15 +319,29 @@ Content-Type: application/json
 Authorization: Bearer {TOKEN}
 ```
 
-**Request Body:**
+**Request Body (QA):**
 ```json
 {
-  "cliente": "J401210031",
-  "cuenta_contable": "1111004",
-  "monto": 100.00,
+  "cliente": "19932878",
+  "cuenta_contable": "1112001",
+  "monto": 50.00,
   "numero": "1234",
-  "fecha": "2026-05-21",
-  "clasificacion": "Anticipos Recibidos de los Clientes",
+  "fecha": "2026-05-25",
+  "clasificacion": "anticipo de clientes",
+  "concepto": "Recarga de saldo wallet",
+  "tasa": 1
+}
+```
+
+**Request Body (PROD):**
+```json
+{
+  "cliente": "19932878",
+  "cuenta_contable": "1111004",
+  "monto": 50.00,
+  "numero": "1234",
+  "fecha": "2026-05-25",
+  "clasificacion": "anticipo de clientes",
   "concepto": "Recarga de saldo wallet",
   "tasa": 1
 }
@@ -352,10 +368,13 @@ Authorization: Bearer {TOKEN}
 ```
 
 **Important:**
-- `cuenta_contable` is the BANK/CASH account (e.g., "1111004"), NOT the income account used in invoices
-- `clasificacion` must be pre-configured in T-Virtual under "Bancos > Maestros > Clasificacion de Flujo de Caja"
+- `cuenta_contable` is the BANK/CASH account, NOT the income account used in invoices
+- **QA:** use `1112001` (Banco Mercantil) — `1111004` is not active in QA
+- **PROD:** use `1111004` (Banco Provincial)
+- `clasificacion` must be `"anticipo de clientes"` (exact name in T-Virtual)
 - `numero` is the advance payment reference number (max 10 digits), not the invoice number
 - Used for: wallet recharge, guarantee deposits, prepaid rentals
+- **⚠️ QA has all 2026 fiscal periods closed** — need to request Unidigital to open them
 
 ---
 
@@ -370,8 +389,9 @@ TVIRTUAL_API_TOKEN=your_token_here
 TVIRTUAL_ALMACEN=ALMACEN DE EQUIPOS ALQUILADOS
 TVIRTUAL_VENDEDOR=V0000001
 TVIRTUAL_CUENTA_CONTABLE=1112001
-TVIRTUAL_CUENTA_BANCO=1111004
-TVIRTUAL_CLASIFICACION_ANTICIPO=Anticipos Recibidos de los Clientes
+TVIRTUAL_CUENTA_BANCO_QA=1112001
+TVIRTUAL_CUENTA_BANCO_PROD=1111004
+TVIRTUAL_CLASIFICACION_ANTICIPO=anticipo de clientes
 TVIRTUAL_MONEDA=VES
 ```
 
@@ -394,13 +414,17 @@ exports.registrarAnticipoTVirtual = functions.https.onCall(async (data, context)
     ? process.env.TVIRTUAL_API_TOKEN_PROD
     : process.env.TVIRTUAL_API_TOKEN;
 
+  const cuentaBanco = isProd
+    ? (process.env.TVIRTUAL_CUENTA_BANCO_PROD || '1111004')
+    : (process.env.TVIRTUAL_CUENTA_BANCO_QA || '1112001');
+
   const payload = {
     cliente: cliente,
-    cuenta_contable: process.env.TVIRTUAL_CUENTA_BANCO || '1111004',
+    cuenta_contable: cuentaBanco,
     monto: monto,
     numero: String(referencia).slice(0, 10),
     fecha: fecha || new Date().toISOString().split('T')[0],
-    clasificacion: process.env.TVIRTUAL_CLASIFICACION_ANTICIPO || 'Anticipos Recibidos de los Clientes',
+    clasificacion: process.env.TVIRTUAL_CLASIFICACION_ANTICIPO || 'anticipo de clientes',
     concepto: String(concepto || 'Anticipo Power Bank').slice(0, 100),
     tasa: tasa || 1
   };
