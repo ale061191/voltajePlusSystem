@@ -23,19 +23,26 @@ Cliente devuelve → Se le reembolsa
 
 ---
 
-## 2. Endpoint
+## 2. Endpoint (CORREGIDO)
 
 | Ambiente | URL |
 |----------|-----|
-| **QA** | `POST https://qa.virtualuxor.com/api/anticipos/proveedores` |
-| **Producción** | `POST https://virtualuxor.com/api/anticipos/proveedores` |
+| **QA** | `POST https://qa.tvirtual.net/api/cxc/registrar-anticipos` |
+| **Producción** | `POST https://sav.tvirtual.net/api/cxc/registrar-anticipos` |
 
-> ⚠️ **El nombre del endpoint dice "proveedores" pero lo usaremos para clientes.** T-Virtual registra el movimiento contable sin importar si el RIF es de cliente o proveedor.
+> ✅ El endpoint está en el **mismo dominio** que facturación (`tvirtual.net`), no en `virtualuxor.com`.
 
 ---
 
 ## 3. Autenticación
 
+**Token QA:**
+```
+Authorization: Bearer eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV
+Content-Type: application/json
+```
+
+**Token Producción:**
 ```
 Authorization: Bearer 3fC7a2rSBB8qTcY6b9jptUurfjly0LIFPfHcfxNPj3zrezTM
 Content-Type: application/json
@@ -45,99 +52,89 @@ Content-Type: application/json
 
 ## 4. Payload
 
-### Registrar depósito (cliente paga):
+### Registrar anticipo (cliente recarga/paga depósito):
 
 ```json
 {
-  "numerodocumento": "DEP-001",
-  "fechadocumento": "2026-05-13",
-  "tipo_movimiento": "ND",
-  "ctacontable_banco": "1112010",
-  "rif_proveedor": "V15567644",
+  "cliente": "19932878",
+  "cuenta_contable": "1111004",
   "monto": 50.00,
-  "tasa_cambio": 1,
-  "clasificacion": "DepositosClientes",
-  "concepto": "Depósito alquiler Power Bank - Orden 260513..."
-}
-```
-
-### Registrar egreso/devolución (cliente devuelve):
-
-```json
-{
-  "numerodocumento": "DEV-001",
-  "fechadocumento": "2026-05-13",
-  "tipo_movimiento": "ND",
-  "ctacontable_banco": "1112010",
-  "rif_proveedor": "V15567644",
-  "monto": -50.00,
-  "tasa_cambio": 1,
-  "clasificacion": "DepositosClientes",
-  "concepto": "Devolución depósito - Orden 260513..."
+  "numero": "1234",
+  "fecha": "2026-05-21",
+  "clasificacion": "Anticipos Recibidos de los Clientes",
+  "concepto": "Recarga de saldo wallet - Power Bank",
+  "tasa": 1
 }
 ```
 
 ### Campos:
 
-| Campo | Tipo | Descripción | Ejemplo |
-|-------|------|-------------|---------|
-| `numerodocumento` | String (10) | ID único del movimiento | `"DEP-001"` |
-| `fechadocumento` | String | Fecha (YYYY-MM-DD) | `"2026-05-13"` |
-| `tipo_movimiento` | String | `"ND"` = Nota de Débito | `"ND"` |
-| `ctacontable_banco` | String | Cuenta contable del banco | `"1112010"` |
-| `rif_proveedor` | String | **RIF/Cédula del cliente** | `"V15567644"` |
-| `monto` | Number | Positivo = depósito, Negativo = devolución | `50.00` |
-| `tasa_cambio` | Number | 1 si es Bs | `1` |
-| `clasificacion` | String | Debe existir en T-Virtual | `"DepositosClientes"` |
-| `concepto` | String | Descripción + ID de orden | `"Depósito - Orden 260513..."` |
+| Campo | Tipo | Máx | Descripción | Ejemplo |
+|-------|------|-----|-------------|---------|
+| `cliente` | String | — | RIF/Cédula del cliente (solo números) | `"19932878"` |
+| `cuenta_contable` | String | — | Cuenta de **banco/caja** en T-Virtual | `"1111004"` |
+| `monto` | Number | 12 | Monto del anticipo | `50.00` |
+| `numero` | String | 10 | Número de referencia (único) | `"1234"` |
+| `fecha` | String | — | Fecha YYYY-MM-DD | `"2026-05-21"` |
+| `clasificacion` | String | — | Debe existir en T-Virtual | `"Anticipos Recibidos de los Clientes"` |
+| `concepto` | String | 100 | Descripción de la operación | `"Recarga de saldo wallet"` |
+| `tasa` | Number | 12 | 1 = Bs, tasa BCV si es USD | `1` |
+
+### ⚠️ Diferencia importante con facturación:
+- **Facturación** usa `cuenta_asociada` de tipo **INGRESO** (ej: `1112001`)
+- **Anticipo** usa `cuenta_contable` de tipo **BANCO/CAJA** (ej: `1111004`)
 
 ---
 
 ## 5. ⚠️ Requisito Previo
 
-La `clasificacion` debe estar **creada en T-Virtual** en:
+La clasificación **`"Anticipos Recibidos de los Clientes"`** debe existir en T-Virtual en:
 
-> Bancos > Maestros > Clasificación de Pagos/Cobros
+> Bancos > Maestros > Clasificación de Flujo de Caja
 
-Solicitar crear `"DepositosClientes"` en QA y Producción.
+Si no existe, solicitar a T-Virtual que la creen en QA y Producción.
 
 ---
 
 ## 6. Código (nueva función)
 
-**Crear archivo:** `voltaje_v2_backend/src/services/deposito.service.ts`
-
 ```typescript
-const API_URL = process.env.ANTICIPO_URL || 'https://qa.virtualuxor.com/api/anticipos/proveedores';
-const TOKEN = process.env.TVIRTUAL_TOKEN;
+const API_URL_QA = 'https://qa.tvirtual.net/api/cxc/registrar-anticipos';
+const API_URL_PROD = 'https://sav.tvirtual.net/api/cxc/registrar-anticipos';
+const TOKEN_QA = 'eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV';
+const TOKEN_PROD = process.env.TVIRTUAL_API_TOKEN;
 
-interface DepositoData {
-  numerodocumento: string;
-  fechadocumento: string;
-  rif_cliente: string;
+interface AnticipoData {
+  cliente: string;
   monto: number;
-  orderId: string;
-  esDeposito: boolean; // true = depósito, false = devolución
+  referencia: string;
+  fecha?: string;
+  concepto: string;
+  tasa?: number;
+  env: 'qa' | 'prod';
 }
 
-async function registrarDeposito(data: DepositoData) {
+async function registrarAnticipoCliente(data: AnticipoData) {
+  const isProd = data.env === 'prod';
+  const url = isProd ? API_URL_PROD : API_URL_QA;
+  const token = isProd ? TOKEN_PROD : TOKEN_QA;
+
   const payload = {
-    numerodocumento: data.numerodocumento,
-    fechadocumento: data.fechadocumento,
-    tipo_movimiento: "ND",
-    ctacontable_banco: process.env.CUENTA_CONTABLE_BANCO || "1112010",
-    rif_proveedor: data.rif_cliente,
-    monto: data.esDeposito ? data.monto : -data.monto,
-    tasa_cambio: 1,
-    clasificacion: "DepositosClientes",
-    concepto: `${data.esDeposito ? "Depósito" : "Devolución"} - Orden ${data.orderId}`
+    cliente: data.cliente,
+    cuenta_contable: process.env.TVIRTUAL_CUENTA_BANCO || '1111004',
+    monto: data.monto,
+    numero: String(data.referencia).slice(0, 10),
+    fecha: data.fecha || new Date().toISOString().split('T')[0],
+    clasificacion: 'Anticipos Recibidos de los Clientes',
+    concepto: String(data.concepto).slice(0, 100),
+    tasa: data.tasa || 1
   };
 
-  const res = await fetch(API_URL, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${TOKEN}`
+      'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify(payload)
   });
@@ -148,26 +145,26 @@ async function registrarDeposito(data: DepositoData) {
 
 ---
 
-## 7. Flujo Completo en Código
+## 7. Flujo Completo
 
 ```
 FUNCIÓN: procesarAlquiler(ordenId, clienteRif, monto)
-  1. Crear factura en T-Virtual    →  API Facturación (YA EXISTE)
-  2. Registrar depósito en T-Virtual →  API Anticipo (NUEVA)
-  
+  1. Crear factura en T-Virtual   → POST /api/facturacion-digital/cargar
+  2. Registrar anticipo           → POST /api/cxc/registrar-anticipos
+
 FUNCIÓN: procesarDevolucion(ordenId, clienteRif, monto)
-  1. Registrar devolución en T-Virtual →  API Anticipo (NUEVA, monto negativo)
+  1. Facturar si aplica
+  2. Anticipo no se revierte (se descuenta del saldo a favor)
 ```
 
 ---
 
 ## ✅ Checklist
 
-- [ ] Solicitar crear clasificación `"DepositosClientes"` en T-Virtual QA
-- [ ] Crear `deposito.service.ts` con la nueva función
-- [ ] Llamar a la API después de cada factura exitosa
-- [ ] Probar en QA
-- [ ] Solicitar clasificación en Producción
+- [ ] Verificar que clasificación `"Anticipos Recibidos de los Clientes"` existe en T-Virtual
+- [ ] Probar en QA con token `eOu9ZOcjtLXfxP19Fq3Ij+D8KidlVDOKWuywwnSc7nJ62zLV`
+- [ ] Revisar que `cuenta_contable` sea de banco/caja (ej: `1111004`), NO de ingreso
+- [ ] Una vez funcione en QA, probar en Producción
 
 ---
 
