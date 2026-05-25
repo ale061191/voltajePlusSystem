@@ -305,4 +305,121 @@ TVIRTUAL_MONEDA=VES
 
 ---
 
+---
+
+### 3. Register Client Advance Payment / 客户预付款 (Anticipo)
+
+**URL:** `POST https://qa.tvirtual.net/api/cxc/registrar-anticipos`
+
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer {TOKEN}
+```
+
+**Request Body:**
+```json
+{
+  "cliente": "J401210031",
+  "cuenta_contable": "1111004",
+  "monto": 100.00,
+  "numero": "1234",
+  "fecha": "2026-05-21",
+  "clasificacion": "Anticipos Recibidos de los Clientes",
+  "concepto": "Recarga de saldo wallet",
+  "tasa": 1
+}
+```
+
+**Field Description:**
+| Field | Type | Max | Description |
+|-------|------|-----|-------------|
+| cliente | String | - | RIF/Cédula del cliente (solo números) |
+| cuenta_contable | String | - | Cuenta de banco/caja en T-Virtual |
+| monto | Number | 12 chars | Monto del anticipo |
+| numero | String | 10 dígitos | Número de referencia del anticipo |
+| fecha | String | - | Fecha YYYY-MM-DD |
+| clasificacion | String | - | Debe existir en T-Virtual (Bancos > Maestros > Clasificacion de Flujo de Caja) |
+| concepto | String | 100 chars | Descripción de la operación |
+| tasa | Number | 12 chars | 1 = Bs, o tasa BCV para USD |
+
+**Response (success):**
+```json
+{
+  "error": false,
+  "mensaje": "Anticipo registrado exitosamente"
+}
+```
+
+**Important:**
+- `cuenta_contable` is the BANK/CASH account (e.g., "1111004"), NOT the income account used in invoices
+- `clasificacion` must be pre-configured in T-Virtual under "Bancos > Maestros > Clasificacion de Flujo de Caja"
+- `numero` is the advance payment reference number (max 10 digits), not the invoice number
+- Used for: wallet recharge, guarantee deposits, prepaid rentals
+
+---
+
+## Environment Variables (.env) - Updated
+
+```
+# T-Virtual Configuration
+TVIRTUAL_API_URL=https://qa.tvirtual.net/api/facturacion-digital/cargar
+TVIRTUAL_CLIENTE_API_URL=https://qa.tvirtual.net/api/prov-clientes/cargar
+TVIRTUAL_ANTICIPO_API_URL=https://qa.tvirtual.net/api/cxc/registrar-anticipos
+TVIRTUAL_API_TOKEN=your_token_here
+TVIRTUAL_ALMACEN=ALMACEN DE EQUIPOS ALQUILADOS
+TVIRTUAL_VENDEDOR=V0000001
+TVIRTUAL_CUENTA_CONTABLE=1112001
+TVIRTUAL_CUENTA_BANCO=1111004
+TVIRTUAL_CLASIFICACION_ANTICIPO=Anticipos Recibidos de los Clientes
+TVIRTUAL_MONEDA=VES
+```
+
+---
+
+## Firebase Cloud Function Example - Anticipo / 预付款云函数
+
+```javascript
+// ============================================================
+// Register Advance Payment / 注册预付款
+// ============================================================
+exports.registrarAnticipoTVirtual = functions.https.onCall(async (data, context) => {
+  const { cliente, monto, referencia, fecha, concepto, tasa, env } = data;
+
+  const isProd = env === 'prod';
+  const url = isProd
+    ? 'https://sav.tvirtual.net/api/cxc/registrar-anticipos'
+    : 'https://qa.tvirtual.net/api/cxc/registrar-anticipos';
+  const token = isProd
+    ? process.env.TVIRTUAL_API_TOKEN_PROD
+    : process.env.TVIRTUAL_API_TOKEN;
+
+  const payload = {
+    cliente: cliente,
+    cuenta_contable: process.env.TVIRTUAL_CUENTA_BANCO || '1111004',
+    monto: monto,
+    numero: String(referencia).slice(0, 10),
+    fecha: fecha || new Date().toISOString().split('T')[0],
+    clasificacion: process.env.TVIRTUAL_CLASIFICACION_ANTICIPO || 'Anticipos Recibidos de los Clientes',
+    concepto: String(concepto || 'Anticipo Power Bank').slice(0, 100),
+    tasa: tasa || 1
+  };
+
+  const response = await axios.post(url, payload, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 15000
+  });
+
+  return {
+    success: !response.data.error,
+    data: response.data
+  };
+});
+```
+
+---
+
 **For questions, contact the development team.**
