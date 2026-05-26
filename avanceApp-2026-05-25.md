@@ -52,6 +52,24 @@ Resultado: `"Este anticipo se encuentra dentro de un mes ya conciliado"` — la 
 - Los desarrolladores chinos deben usar `"Anticipo de Clientes"` (con mayúsculas) para PROD.
 - La cuenta `1111004` (Banco Provincial) no está configurada en PROD; la única cuenta bancaria activa es `1112001` (BNC).
 
+### Incidente QA — API rota (25/05)
+- El endpoint `POST /api/cxc/registrar-anticipos` en QA empezó a devolver SQL error (`$9,)` — coma colgante por `idclasificacion` no resuelto)
+- El mismo payload que el 24/05 funcionaba (`"mes ya conciliado"`) ahora falla con error de sintaxis SQL
+- Afecta cualquier payload, independientemente de `clasificacion`, `numero` o fecha
+- Causa probable: deploy o cambio en backend de QA por parte de Unidigital
+- Reportado al equipo para que lo escalen a Unidigital
+
+### Factura en PROD emitida por desarrollador chino
+- Se emitió factura **#00000040** en `sav.tvirtual.net` para cliente `J445687996`
+- URL: `https://www.unidigital.global/digitalinvoice-core/documents/view/b0f1401d-049a-4b1c-bb66-55a69372094b`
+- El PDF es accesible con el token Bearer y contiene todos los datos fiscales
+- BNC solicitó el payload + respuesta para verificar el cobro
+
+### Archivos creados hoy
+- `integracion_tvirtual_chinos/GUIA_ANTICIPO_PRODUCCION.md` — guía completa para implementar Anticipo en PROD (endpoint, token, clasificación, cuenta, payload, env vars)
+- `integracion_tvirtual_chinos/EXPLICACION_ANTICIPO.md` — explicación del negocio en español y chino para desarrolladores
+- `avanceApp-2026-05-25.md` — este archivo
+
 ### Archivos actualizados
 - `integracion_tvirtual_chinos/tvirtual_anticipo.js` — token, clasificación y cuentas corregidos
 - `integracion_tvirtual_chinos/README_INTEGRACION.md` — payloads, env vars y notas actualizados
